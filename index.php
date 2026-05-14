@@ -15,15 +15,14 @@ if (!in_array($page, $allowed_pages)) {
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <!-- Verhindert reinzoomen und optimiert für Mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Bolzer-League</title>
     
-    <!-- Färbt die obere Statusleiste auf Android/Chrome ein (Light Mode Standard) -->
+    <!-- Akzentfarbe für die obere Browser-Leiste (und bei manchen Handys auch unten) -->
     <meta name="theme-color" content="#007bff" id="meta-theme-color">
     
-    <!-- iOS Safari Anpassungen für Web Apps -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- Moderne Web-App Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <link rel="stylesheet" href="assets/css/style.css">

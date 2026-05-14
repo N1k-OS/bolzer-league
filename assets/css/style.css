@@ -44,12 +44,32 @@ body {
     background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* Verteilt oberen und unteren Block maximal */
     padding-top: 15px;
-    /* Extra Padding unten für moderne Smartphones (iPhone Notch, Android Bar) */
-    padding-bottom: env(safe-area-inset-bottom, 20px); 
+    padding-bottom: env(safe-area-inset-bottom, 20px);
     transition: background-color 0.4s ease;
     z-index: 100;
+    
+    /* WICHTIG: Erlaubt das Scrollen der Sidebar */
+    overflow-y: auto; 
+    height: 100%; 
+}
+
+.sidebar::-webkit-scrollbar, 
+.page-content::-webkit-scrollbar {
+    display: none;
+}
+
+.sidebar, 
+.page-content {
+    -ms-overflow-style: none;  /* IE und Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+/* Verhindert, dass die Logos und Icons zusammengestaucht werden, wenn der Platz fehlt */
+.brand-logo, 
+.sidebar-icons, 
+.sidebar-bottom {
+    flex-shrink: 0; 
 }
 
 .brand-logo {
@@ -71,9 +91,10 @@ body {
     flex-direction: column;
     width: 100%;
     align-items: center;
-    margin-top: auto; /* Zwingt diesen Block nach ganz unten */
-    /* Fügt den gewünschten Abstand zwischen Tab-Icons und Bottom-Icons hinzu */
-    padding-top: 20px; 
+    /* margin-top: auto schiebt den Block nach unten, wenn Platz ist. 
+       Wenn kein Platz ist, greift die Scroll-Funktion */
+    margin-top: auto; 
+    padding-top: 20px;
 }
 
 .nav-item {
@@ -126,8 +147,10 @@ body {
     font-size: 1.5rem;
 }
 
-.page-content p {
-    color: gray;
-    margin-bottom: 20px;
-    font-size: 0.9rem;
+.page-content {
+    padding: 20px;
+    /* WICHTIG: Erlaubt das Scrollen des Inhalts unabhängig von der Sidebar */
+    overflow-y: auto; 
+    flex-grow: 1;
+    height: 100%;
 }
