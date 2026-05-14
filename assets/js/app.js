@@ -25,23 +25,4 @@ document.addEventListener("DOMContentLoaded", () => {
             applyTheme(newTheme);
         });
     }
-
-    // --- TAB NAVIGATION LOGIK ---
-    const navButtons = document.querySelectorAll('.nav-btn[data-target]');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    navButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            // 1. Alle aktiven Zustände entfernen
-            navButtons.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(t => t.classList.remove('active'));
-
-            // 2. Den geklickten Button aktivieren
-            btn.classList.add('active');
-
-            // 3. Den passenden Inhaltsbereich einblenden
-            const targetId = btn.getAttribute('data-target');
-            document.getElementById(targetId).classList.add('active');
-        });
-    });
 });

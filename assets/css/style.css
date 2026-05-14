@@ -14,7 +14,8 @@
     --sidebar-active: #172a45;
 }
 
-* {
+/* Gezielter Reset statt * Operator */
+html, body, div, nav, main, h1, h2, h3, h4, h5, h6, p, a, button {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -30,9 +31,15 @@ body {
 /* --- LAYOUT --- */
 .app-layout {
     display: flex;
-    height: 100vh;
-    height: 100dvh;
+    height: 100dvh; /* Dynamic Viewport Height: Behebt das Problem auf dem Handy */
     width: 100%;
+}
+
+/* --- CONTENT --- */
+.content-area {
+    flex-grow: 1;
+    overflow-y: auto;
+    background-color: var(--bg-color); /* Aus der index.php hierher verschoben */
 }
 
 /* --- SIDEBAR --- */
@@ -97,12 +104,6 @@ body {
 
 .nav-item:hover, .nav-item.active {
     background-color: var(--sidebar-active);
-}
-
-/* --- CONTENT --- */
-.content-area {
-    flex-grow: 1;
-    overflow-y: auto;
 }
 
 .page-content {

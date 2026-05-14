@@ -1,7 +1,3 @@
-<?php
-// JSON-Datei laden und in ein PHP-Array umwandeln
-$tabs = json_decode($tabs_json, true);
-?>
 <nav class="sidebar">
     <div class="brand-logo">
         ⚽<br><small>BL</small>
@@ -19,7 +15,6 @@ $tabs = json_decode($tabs_json, true);
         <?php endforeach; ?>
     </div>
 
-    <!-- Unterer Bereich für Dark Mode und Settings -->
     <div class="sidebar-bottom">
         <button id="theme-toggle" class="nav-item icon-btn" title="Tag/Nacht Modus">🌗</button>
         
