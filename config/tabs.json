@@ -1,0 +1,51 @@
+[
+    {
+        "id": "events",
+        "icon": "🏆",
+        "title": "Events",
+        "file": "pages/events.php"
+    },
+    {
+        "id": "teams",
+        "icon": "🛡️",
+        "title": "Teams & Spieler",
+        "file": "pages/teams.php"
+    },
+    {
+        "id": "standings",
+        "icon": "📊",
+        "title": "Tabelle",
+        "file": "pages/standings.php"
+    },
+    {
+        "id": "matches",
+        "icon": "⚔️",
+        "title": "Begegnungen",
+        "file": "pages/matches.php"
+    },
+    {
+        "id": "topscorer",
+        "icon": "👟",
+        "title": "Top Scorer",
+        "file": "pages/topscorer.php"
+    },
+    {
+        "id": "bracket",
+        "icon": "🌳",
+        "title": "Turnierbaum",
+        "file": "pages/bracket.php"
+    },
+    {
+        "id": "transfer",
+        "icon": "🔄",
+        "title": "Transfermarkt",
+        "file": "pages/transfer.php"
+    },
+    {
+        "id": "settings",
+        "icon": "⚙️",
+        "title": "Einstellungen",
+        "file": "pages/settings.php",
+        "bottom": true
+    }
+]
