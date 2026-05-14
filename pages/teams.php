@@ -3,74 +3,50 @@
     <p>Die Aufstellungen für das aktuelle Event.</p>
 </div>
 
-<div class="accordion-container">
-    
-    <!-- TEAM 1 -->
-    <div class="accordion-item">
-        <button class="accordion-header">
-            <span class="team-name">🛡️ Team 1</span>
-            <span class="accordion-icon">+</span>
-        </button>
-        <div class="accordion-content">
-            <ul class="player-list">
-                <li class="player-item">
-                    <div class="player-avatar">A</div>
-                    <div class="player-info">
-                        <span class="player-name">Aris</span>
-                        <span class="player-cat category-a">Kat A</span>
-                    </div>
-                </li>
-                <li class="player-item">
-                    <div class="player-avatar">M</div>
-                    <div class="player-info">
-                        <span class="player-name">Mikael</span>
-                        <span class="player-cat category-b">Kat B</span>
-                    </div>
-                </li>
-                <li class="player-item">
-                    <div class="player-avatar">E</div>
-                    <div class="player-info">
-                        <span class="player-name">Efi</span>
-                        <span class="player-cat category-c">Kat C</span>
-                    </div>
-                </li>
-                <li class="player-item">
-                    <div class="player-avatar">N</div>
-                    <div class="player-info">
-                        <span class="player-name">Nikos</span>
-                        <span class="player-cat category-b">Kat B</span>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
+<div class="accordion-container" id="teams-accordion">
+    <?php
+    // 1. Daten laden (Später: $db->query("SELECT * FROM teams..."))
+    $teams_json = file_get_contents('data/teams.json');
+    $teams_data = json_decode($teams_json, true);
 
-    <!-- TEAM 2 -->
-    <div class="accordion-item">
-        <button class="accordion-header">
-            <span class="team-name">🛡️ Team 2</span>
-            <span class="accordion-icon">+</span>
-        </button>
-        <div class="accordion-content">
-            <ul class="player-list">
-                <li class="player-item">
-                    <div class="player-avatar">P</div>
-                    <div class="player-info">
-                        <span class="player-name">Pavel</span>
-                        <span class="player-cat category-a">Kat A</span>
-                    </div>
-                </li>
-                <li class="player-item">
-                    <div class="player-avatar">C</div>
-                    <div class="player-info">
-                        <span class="player-name">Cristiano</span>
-                        <span class="player-cat category-b">Kat B</span>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-    
-    <!-- (Hier kannst du später Team 3 und 4 nach dem gleichen Muster einfügen) -->
+    // 2. Schleife über alle Teams
+    foreach ($teams_data as $team) {
+        echo '<div class="accordion-item">';
+        
+        // Header des Teams
+        echo '<button class="accordion-header">';
+        echo '  <span class="team-name">' . htmlspecialchars($team['icon'] . ' ' . $team['name']) . '</span>';
+        echo '  <span class="accordion-icon">+</span>';
+        echo '</button>';
+        
+        // Inhalt (Spieler) des Teams
+        echo '<div class="accordion-content">';
+        echo '  <ul class="player-list">';
+        
+        // 3. Schleife über alle Spieler dieses Teams
+        foreach ($team['players'] as $player) {
+            // Generiere den Anfangsbuchstaben für den Kreis
+            $initial = mb_substr($player['name'], 0, 1);
+            $cat_class = 'category-' . $player['category']; // z.B. category-a
+            
+            echo '    <li class="player-item">';
+            echo '      <div class="player-avatar">' . htmlspecialchars($initial) . '</div>';
+            echo '      <div class="player-info">';
+            echo '        <span class="player-name">' . htmlspecialchars($player['name']) . '</span>';
+            echo '        <span class="player-cat ' . htmlspecialchars($cat_class) . '">' . htmlspecialchars($player['cat_label']) . '</span>';
+            echo '      </div>';
+            echo '    </li>';
+        }
+        
+        echo '  </ul>';
+        echo '</div>'; // Ende accordion-content
+        
+        echo '</div>'; // Ende accordion-item
+    }
+    ?>
+</div>
 
+<!-- Admin-Button (Wird später nur eingeblendet, wenn $user_role == 'admin') -->
+<div class="admin-actions" style="margin-top: 20px; text-align: center;">
+    <button class="primary-btn" style="width: auto; padding: 10px 20px;">+ Team hinzufügen</button>
 </div>

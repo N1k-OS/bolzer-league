@@ -1,0 +1,22 @@
+[
+    {
+        "id": 1,
+        "name": "Team 1",
+        "icon": "🛡️",
+        "players": [
+            {"name": "Aris", "category": "a", "cat_label": "Kat A"},
+            {"name": "Mikael", "category": "b", "cat_label": "Kat B"},
+            {"name": "Efi", "category": "c", "cat_label": "Kat C"},
+            {"name": "Nikos", "category": "b", "cat_label": "Kat B"}
+        ]
+    },
+    {
+        "id": 2,
+        "name": "Team 2",
+        "icon": "🦁",
+        "players": [
+            {"name": "Pavel", "category": "a", "cat_label": "Kat A"},
+            {"name": "Cristiano", "category": "b", "cat_label": "Kat B"}
+        ]
+    }
+]

@@ -27,36 +27,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // =========================================
-    // AKKORDEON LOGIK (Teams)
+    // AKKORDEON LOGIK (Event Delegation für dynamische Inhalte)
     // =========================================
-    const accordions = document.querySelectorAll(".accordion-header");
-
-    accordions.forEach(acc => {
-        acc.addEventListener("click", function() {
-            // Das Plus/Minus Icon finden
-            const icon = this.querySelector(".accordion-icon");
-            // Den Inhalt unter dem angeklickten Header finden
-            const content = this.nextElementSibling;
+    document.addEventListener("click", function(event) {
+        // Prüfen, ob das geklickte Element ein accordion-header ist (oder ein Kind davon)
+        const header = event.target.closest(".accordion-header");
+        
+        if (header) {
+            const icon = header.querySelector(".accordion-icon");
+            const content = header.nextElementSibling;
             
-            // Wenn es schon offen ist -> zumachen
             if (content.style.maxHeight) {
+                // Schließen
                 content.style.maxHeight = null;
-                icon.textContent = "+";
-            } 
-            // Wenn es zu ist -> aufmachen
-            else {
-                // (Optional) Andere offene Tabs vorher schließen:
-                /*
-                accordions.forEach(otherAcc => {
-                    otherAcc.nextElementSibling.style.maxHeight = null;
-                    otherAcc.querySelector(".accordion-icon").textContent = "+";
-                });
-                */
-                
-                // Setzt die Höhe genau auf die Größe des Inhalts
+                if(icon) icon.textContent = "+";
+            } else {
+                // Öffnen
                 content.style.maxHeight = content.scrollHeight + "px";
-                icon.textContent = "−";
+                if(icon) icon.textContent = "−";
             }
-        });
+        }
     });
 });
