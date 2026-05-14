@@ -1,79 +1,63 @@
-/* --- FARB-VARIABLEN (Light Mode Standard) --- */
+/* --- VARIABLEN & BASIS --- */
 :root {
     --bg-color: #f4f4f9;
     --text-color: #333333;
-    --card-bg: #ffffff;
-    --primary-color: #007bff;
-    --border-color: #dddddd;
-    --sidebar-bg: #007bff; /* Helleres Blau für Light Mode */
+    --sidebar-bg: #007bff;
     --sidebar-text: #ffffff;
     --sidebar-active: #0056b3;
 }
 
-/* --- FARB-VARIABLEN (Dark Mode) --- */
 [data-theme="dark"] {
     --bg-color: #121212;
     --text-color: #e0e0e0;
-    --card-bg: #1e1e1e;
-    --primary-color: #3b82f6;
-    --border-color: #333333;
-    --sidebar-bg: #0a192f; /* Sehr dunkles Blau/Grau für Dark Mode */
+    --sidebar-bg: #0a192f;
     --sidebar-active: #172a45;
 }
 
-/* --- BASIS-STYLING (Mobile First) --- */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
-    display: flex;
-    height: 100vh;
-    height: 100dvh; 
-    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
-    transition: background-color 0.4s ease, color 0.4s ease;
+    overflow: hidden; /* Verhindert komplettes Body-Scrolling */
 }
 
+/* --- LAYOUT --- */
+.app-layout {
+    display: flex;
+    height: 100vh;
+    height: 100dvh;
+    width: 100%;
+}
+
+/* --- SIDEBAR --- */
 .sidebar {
     width: 75px;
-    min-width: 75px; /* Verhindert das Schrumpfen */
-    max-width: 75px;
+    min-width: 75px; /* Verhindert Breiten-Flackern */
     background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
-    box-sizing: border-box;
-    padding-top: 15px;
-    padding-bottom: env(safe-area-inset-bottom, 20px);
+    padding: 15px 0; /* Gleichmäßiges Padding oben/unten */
     transition: background-color 0.4s ease;
     z-index: 100;
-    
-    /* WICHTIG: Erlaubt das Scrollen der Sidebar */
-    overflow-y: auto; 
-    height: 100vh; 
-    height: 100dvh;; 
 }
 
-.sidebar::-webkit-scrollbar, 
-.page-content::-webkit-scrollbar {
-    display: none;
+/* Scrollbars überall verstecken */
+.sidebar, .page-content {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+.sidebar::-webkit-scrollbar, .page-content::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
 }
 
-.sidebar, 
-.page-content {
-    -ms-overflow-style: none;  /* IE und Edge */
-    scrollbar-width: none;  /* Firefox */
-}
-
-/* Verhindert, dass die Logos und Icons zusammengestaucht werden, wenn der Platz fehlt */
-.brand-logo, 
-.sidebar-icons, 
-.sidebar-bottom {
-    flex-shrink: 0; 
+.brand-logo, .sidebar-icons, .sidebar-bottom {
+    flex-shrink: 0;
 }
 
 .brand-logo {
@@ -84,77 +68,49 @@ body {
 }
 
 .sidebar-icons {
-    /* Nimmt keinen extra Platz ein, gruppiert nur die oberen Icons */
     display: flex;
     flex-direction: column;
-    width: 100%;
+    overflow-y: auto; /* Nur die Icons in der Mitte dürfen scrollen */
+    flex-grow: 1;
 }
 
 .sidebar-bottom {
     display: flex;
     flex-direction: column;
-    width: 100%;
-    align-items: center;
-    /* margin-top: auto schiebt den Block nach unten, wenn Platz ist. 
-       Wenn kein Platz ist, greift die Scroll-Funktion */
     margin-top: auto; 
-    padding-top: 20px;
+    padding-bottom: env(safe-area-inset-bottom, 10px); /* Bessere Handhabung für iPhones */
 }
 
+/* --- NAV ITEMS --- */
 .nav-item {
     color: var(--sidebar-text);
     text-decoration: none;
     font-size: 1.5rem;
-    padding: 12px 0; /* Etwas weniger Padding für kleinere Bildschirme */
+    padding: 12px 0;
     width: 100%;
     text-align: center;
-    border-radius: 8px;
-    margin: 2px 0;
     transition: background-color 0.3s ease;
+    border: none;
+    background: none;
+    cursor: pointer;
 }
 
 .nav-item:hover, .nav-item.active {
     background-color: var(--sidebar-active);
 }
 
-.icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-}
-
-/* Damit der Button nicht den blauen Hintergrund vom Theme verliert */
-#theme-toggle {
-    opacity: 0.8;
-}
-
-/* --- MAIN CONTENT --- */
-.main-content {
+/* --- CONTENT --- */
+.content-area {
     flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--bg-color);
-    transition: background-color 0.4s ease; /* Animation für den Content-Bereich */
-}
-
-/* Den Header, den wir in der index.php hatten, brauchen wir hier jetzt anpassen oder entfernen,
-   da die Sidebar links ist. Hier nur das Padding für den Content. */
-.page-content {
-    padding: 20px;
     overflow-y: auto;
-    flex-grow: 1;
-}
-
-/* H1/H2 Styling für die Pages */
-.page-content h2 {
-    margin-bottom: 5px;
-    font-size: 1.5rem;
 }
 
 .page-content {
     padding: 20px;
-    /* WICHTIG: Erlaubt das Scrollen des Inhalts unabhängig von der Sidebar */
-    overflow-y: auto; 
-    flex-grow: 1;
-    height: 100%;
+    max-width: 1200px; /* Optional: Verhindert, dass Text auf Riesenmonitoren zu breit wird */
+}
+
+.page-content h2 {
+    margin-bottom: 15px;
+    font-size: 1.5rem;
 }
