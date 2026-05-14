@@ -1,1 +1,1 @@
-<?php echo "Hallo Bolzer League!"; ?>
+<?php echo "Hallo Bolzer League!"; ?> 
