@@ -1,6 +1,5 @@
 <?php
 // JSON-Datei laden und in ein PHP-Array umwandeln
-$tabs_json = file_get_contents('config/tabs.json');
 $tabs = json_decode($tabs_json, true);
 ?>
 <nav class="sidebar">

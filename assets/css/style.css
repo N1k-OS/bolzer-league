@@ -32,23 +32,22 @@
 body {
     display: flex;
     height: 100vh;
+    height: 100dvh; 
     overflow: hidden;
     background-color: var(--bg-color);
     color: var(--text-color);
-    /* WICHTIG: Die Transition muss hier auf den body angewendet werden für den Hintergrund */
     transition: background-color 0.4s ease, color 0.4s ease;
 }
 
-/* --- SIDEBAR (Breiter für Touch) --- */
 .sidebar {
-    width: 75px; /* Etwas dicker für bessere Bedienbarkeit auf dem Handy */
+    width: 75px;
     background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
-    align-items: center;
+    justify-content: space-between; /* Verteilt oberen und unteren Block maximal */
     padding-top: 15px;
-    padding-bottom: 15px;
-    /* Animation für den Hintergrundwechsel beim Dark Mode in der Sidebar */
+    /* Extra Padding unten für moderne Smartphones (iPhone Notch, Android Bar) */
+    padding-bottom: env(safe-area-inset-bottom, 20px); 
     transition: background-color 0.4s ease;
     z-index: 100;
 }
@@ -56,12 +55,12 @@ body {
 .brand-logo {
     color: white;
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     font-weight: bold;
 }
 
 .sidebar-icons {
-    flex-grow: 1; /* Schiebt die unteren Icons nach ganz unten */
+    /* Nimmt keinen extra Platz ein, gruppiert nur die oberen Icons */
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -72,16 +71,19 @@ body {
     flex-direction: column;
     width: 100%;
     align-items: center;
+    margin-top: auto; /* Zwingt diesen Block nach ganz unten */
+    /* Fügt den gewünschten Abstand zwischen Tab-Icons und Bottom-Icons hinzu */
+    padding-top: 20px; 
 }
 
 .nav-item {
     color: var(--sidebar-text);
     text-decoration: none;
-    font-size: 1.6rem; /* Größere Icons für Touch */
-    padding: 18px 0; /* Mehr Abstand zwischen den Icons */
+    font-size: 1.5rem;
+    padding: 12px 0; /* Etwas weniger Padding für kleinere Bildschirme */
     width: 100%;
     text-align: center;
-    border-radius: 8px; /* Leicht abgerundete Ecken bei Hover */
+    border-radius: 8px;
     margin: 2px 0;
     transition: background-color 0.3s ease;
 }

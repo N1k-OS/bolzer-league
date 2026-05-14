@@ -1,27 +1,30 @@
-// Warte, bis das HTML vollständig geladen ist
 document.addEventListener("DOMContentLoaded", () => {
-    
-    // --- DARK / LIGHT MODE LOGIK ---
     const themeToggleBtn = document.getElementById("theme-toggle");
     const currentTheme = localStorage.getItem("theme");
+    const metaThemeColor = document.getElementById("meta-theme-color");
 
-    // Prüfen, ob der Nutzer beim letzten Mal Dark Mode aktiviert hatte
-    if (currentTheme === "dark") {
-        document.documentElement.setAttribute("data-theme", "dark");
+    function applyTheme(theme) {
+        if (theme === "dark") {
+            document.documentElement.setAttribute("data-theme", "dark");
+            metaThemeColor.setAttribute("content", "#0a192f"); // Dunkelblau für Dark Mode
+        } else {
+            document.documentElement.removeAttribute("data-theme");
+            metaThemeColor.setAttribute("content", "#007bff"); // Helles Blau für Light Mode
+        }
     }
 
-    // Beim Klick auf den Theme-Button
-    themeToggleBtn.addEventListener("click", () => {
-        let theme = document.documentElement.getAttribute("data-theme");
-        
-        if (theme === "dark") {
-            document.documentElement.removeAttribute("data-theme");
-            localStorage.setItem("theme", "light");
-        } else {
-            document.documentElement.setAttribute("data-theme", "dark");
-            localStorage.setItem("theme", "dark");
-        }
-    });
+    if (currentTheme) {
+        applyTheme(currentTheme);
+    }
+
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener("click", () => {
+            let theme = document.documentElement.getAttribute("data-theme");
+            let newTheme = (theme === "dark") ? "light" : "dark";
+            localStorage.setItem("theme", newTheme);
+            applyTheme(newTheme);
+        });
+    }
 
     // --- TAB NAVIGATION LOGIK ---
     const navButtons = document.querySelectorAll('.nav-btn[data-target]');
