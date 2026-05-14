@@ -115,3 +115,98 @@ body {
     margin-bottom: 15px;
     font-size: 1.5rem;
 }
+
+/* =========================================
+   TAB: TEAMS & SPIELER (Akkordeon & Kreise)
+   ========================================= */
+
+.page-header {
+    margin-bottom: 20px;
+}
+
+/* --- Akkordeon (Ausklapp-Menü) --- */
+.accordion-item {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden; /* Wichtig für die Animation */
+}
+
+.accordion-header {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1rem;
+    color: var(--text-color);
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.accordion-content {
+    max-height: 0; /* Startet zugeklappt */
+    overflow: hidden;
+    transition: max-height 0.3s ease-out; /* Weiche Animation */
+    background-color: rgba(0, 0, 0, 0.02); /* Leichte Abhebung vom Header */
+}
+
+[data-theme="dark"] .accordion-content {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* --- Spieler-Liste (Kreise) --- */
+.player-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.player-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.player-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%; /* Macht das Bild zu einem Kreis */
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-right: 15px;
+    flex-shrink: 0; /* Kreis darf auf kleinen Handys nicht schrumpfen */
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.player-name {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+/* Kategorien (A, B, C) visuell abheben */
+.player-cat {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    width: fit-content;
+    font-weight: bold;
+}
+
+.category-a { background-color: #ffd700; color: #000; } /* Gold */
+.category-b { background-color: #c0c0c0; color: #000; } /* Silber */
+.category-c { background-color: #cd7f32; color: #fff; } /* Bronze */
