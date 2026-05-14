@@ -38,6 +38,6 @@ if (!in_array($page, $allowed_pages)) {
         </main>
     </div>
 
-    <script src="assets/js/app.js"></script>
+    <script src="assets/js/app.js?v=<?php echo filemtime('assets/js/app.js'); ?>"></script>
 </body>
 </html>
