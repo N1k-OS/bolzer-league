@@ -1,21 +1,58 @@
 /* --- VARIABLEN & BASIS --- */
 :root {
+    /* Haupt-Farben */
+    --primary-color: #007bff;
+    
+    /* Light Mode */
     --bg-color: #f4f4f9;
+    --card-bg: #ffffff;
     --text-color: #333333;
-    --sidebar-bg: #007bff;
+    --border-color: #dddddd;
+    
+    /* Sidebar (Light Mode) */
+    --sidebar-bg: var(--primary-color);
     --sidebar-text: #ffffff;
     --sidebar-active: #0056b3;
+    
+    /* Akkordeon & Listen (Light Mode) */
+    --accordion-hover: rgba(0, 0, 0, 0.03);
+    --accordion-content-bg: rgba(0, 0, 0, 0.04);
+    --list-divider: rgba(0, 0, 0, 0.05);
+    
+    /* Schatten */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    
+    /* Kategorien (Bleiben konstant) */
+    --cat-a-bg: #ffd700;
+    --cat-a-text: #000000;
+    --cat-b-bg: #c0c0c0;
+    --cat-b-text: #000000;
+    --cat-c-bg: #cd7f32;
+    --cat-c-text: #ffffff;
 }
 
 [data-theme="dark"] {
+    /* Dark Mode */
     --bg-color: #121212;
+    --card-bg: #1e1e1e;
     --text-color: #e0e0e0;
+    --border-color: #333333;
+    
+    /* Sidebar (Dark Mode) */
     --sidebar-bg: #0a192f;
     --sidebar-active: #172a45;
+    
+    /* Akkordeon & Listen (Dark Mode) */
+    --accordion-hover: rgba(255, 255, 255, 0.05);
+    --accordion-content-bg: rgba(255, 255, 255, 0.02);
+    --list-divider: rgba(255, 255, 255, 0.05);
+    
+    /* Schatten für Dark Mode anpassen oder ausblenden */
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2); 
 }
 
 /* Gezielter Reset statt * Operator */
-html, body, div, nav, main, h1, h2, h3, h4, h5, h6, p, a, button {
+html, body, div, nav, main, h1, h2, h3, h4, h5, h6, p, a, button, ul, li {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -26,6 +63,7 @@ body {
     background-color: var(--bg-color);
     color: var(--text-color);
     overflow: hidden; /* Verhindert komplettes Body-Scrolling */
+    transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 /* --- LAYOUT --- */
@@ -39,27 +77,43 @@ body {
 .content-area {
     flex-grow: 1;
     overflow-y: auto;
-    background-color: var(--bg-color); /* Aus der index.php hierher verschoben */
+    background-color: var(--bg-color);
+    transition: background-color 0.4s ease;
+}
+
+.page-content {
+    padding: 20px;
+    max-width: 1200px;
+}
+
+.page-content h2 {
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.page-content p {
+    margin-bottom: 20px;
+    color: gray;
 }
 
 /* --- SIDEBAR --- */
 .sidebar {
     width: 75px;
-    min-width: 75px; /* Verhindert Breiten-Flackern */
+    min-width: 75px;
     background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
-    padding: 15px 0; /* Gleichmäßiges Padding oben/unten */
+    padding: 15px 0;
     transition: background-color 0.4s ease;
     z-index: 100;
 }
 
 /* Scrollbars überall verstecken */
-.sidebar, .page-content {
+.content-area, .sidebar-icons {
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE/Edge */
 }
-.sidebar::-webkit-scrollbar, .page-content::-webkit-scrollbar {
+.content-area::-webkit-scrollbar, .sidebar-icons::-webkit-scrollbar {
     display: none; /* Chrome/Safari */
 }
 
@@ -85,7 +139,7 @@ body {
     display: flex;
     flex-direction: column;
     margin-top: auto; 
-    padding-bottom: env(safe-area-inset-bottom, 10px); /* Bessere Handhabung für iPhones */
+    padding-bottom: env(safe-area-inset-bottom, 10px);
 }
 
 /* --- NAV ITEMS --- */
@@ -106,23 +160,9 @@ body {
     background-color: var(--sidebar-active);
 }
 
-.page-content {
-    padding: 20px;
-    max-width: 1200px; /* Optional: Verhindert, dass Text auf Riesenmonitoren zu breit wird */
-}
-
-.page-content h2 {
-    margin-bottom: 15px;
-    font-size: 1.5rem;
-}
-
 /* =========================================
    TAB: TEAMS & SPIELER (Akkordeon & Kreise)
    ========================================= */
-
-.page-header {
-    margin-bottom: 20px;
-}
 
 /* --- Akkordeon (Ausklapp-Menü) --- */
 .accordion-item {
@@ -130,12 +170,14 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     margin-bottom: 10px;
-    overflow: hidden; /* Wichtig für die Animation */
+    overflow: hidden; 
+    box-shadow: var(--shadow-sm);
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .accordion-header {
     width: 100%;
-    background: none;
+    background-color: transparent; 
     border: none;
     padding: 15px;
     display: flex;
@@ -145,37 +187,36 @@ body {
     color: var(--text-color);
     cursor: pointer;
     font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.accordion-header:hover {
+    background-color: var(--accordion-hover);
 }
 
 .accordion-content {
-    max-height: 0; /* Startet zugeklappt */
+    max-height: 0; 
     overflow: hidden;
-    transition: max-height 0.3s ease-out; /* Weiche Animation */
-    background-color: rgba(0, 0, 0, 0.02); /* Leichte Abhebung vom Header */
-}
-
-[data-theme="dark"] .accordion-content {
-    background-color: rgba(255, 255, 255, 0.02);
+    transition: max-height 0.3s ease-out; 
+    background-color: var(--accordion-content-bg);
 }
 
 /* --- Spieler-Liste (Kreise) --- */
 .player-list {
     list-style: none;
-    padding: 0;
-    margin: 0;
 }
 
 .player-item {
     display: flex;
     align-items: center;
     padding: 12px 15px;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--list-divider);
 }
 
 .player-avatar {
     width: 45px;
     height: 45px;
-    border-radius: 50%; /* Macht das Bild zu einem Kreis */
+    border-radius: 50%;
     background-color: var(--primary-color);
     color: white;
     display: flex;
@@ -184,7 +225,7 @@ body {
     font-weight: bold;
     font-size: 1.2rem;
     margin-right: 15px;
-    flex-shrink: 0; /* Kreis darf auf kleinen Handys nicht schrumpfen */
+    flex-shrink: 0;
 }
 
 .player-info {
@@ -207,6 +248,6 @@ body {
     font-weight: bold;
 }
 
-.category-a { background-color: #ffd700; color: #000; } /* Gold */
-.category-b { background-color: #c0c0c0; color: #000; } /* Silber */
-.category-c { background-color: #cd7f32; color: #fff; } /* Bronze */
+.category-a { background-color: var(--cat-a-bg); color: var(--cat-a-text); }
+.category-b { background-color: var(--cat-b-bg); color: var(--cat-b-text); }
+.category-c { background-color: var(--cat-c-bg); color: var(--cat-c-text); }
