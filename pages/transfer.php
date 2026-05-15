@@ -1,4 +1,4 @@
-<h5>Top Scorer</h5><?php
+<?php
 $market_json = file_get_contents('data/market.json');
 $data = json_decode($market_json, true);
 ?>

@@ -54,8 +54,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================
     function switchMarketTab(tabId) {
         // 1. Ansichten umschalten
-        document.getElementById('market-view').style.display = (tabId === 'market') ? 'block' : 'none';
-        document.getElementById('requests-view').style.display = (tabId === 'requests') ? 'block' : 'none';
+        const marketView = document.getElementById('market-view');
+        const requestsView = document.getElementById('requests-view');
+        
+        // Sicherheits-Check, ob wir überhaupt auf der Transfer-Seite sind
+        if (!marketView || !requestsView) return; 
+
+        marketView.style.display = (tabId === 'market') ? 'block' : 'none';
+        requestsView.style.display = (tabId === 'requests') ? 'block' : 'none';
         
         // 2. Button-Styles anpassen (sicherer Weg)
         const btns = document.querySelectorAll('.tab-switcher .tab-btn');
@@ -90,35 +96,44 @@ document.addEventListener("DOMContentLoaded", () => {
         const select = document.getElementById('trade-offer-player');
         const myPlayerPrice = parseInt(select.value);
         
-        if (!myPlayerPrice) return;
-        
-        // Die Mathematik: Was kostet der Spieler - was ist mein Spieler wert?
-        const cost = currentTargetPrice - myPlayerPrice;
-        const myBudget = parseInt(document.getElementById('current-budget').value);
-        
         const calcBox = document.getElementById('trade-calculation');
         const costSpan = document.getElementById('trade-cost');
         const warning = document.getElementById('trade-warning');
         const submitBtn = document.getElementById('submit-trade-btn');
         
+        // Wenn nichts Echtes ausgewählt ist (z.B. "Spieler wählen")
+        if (isNaN(myPlayerPrice)) {
+            calcBox.style.display = 'none';
+            submitBtn.disabled = true;
+            return;
+        }
+        
+        const cost = currentTargetPrice - myPlayerPrice;
+        const myBudget = parseInt(document.getElementById('current-budget').value);
+        
         calcBox.style.display = 'block';
         
-        // Wenn cost positiv ist, musst du zahlen. Wenn negativ, bekommst du Geld.
         if (cost > 0) {
-            costSpan.textContent = cost;
+            costSpan.textContent = cost + " Coins";
             costSpan.className = "font-bold text-danger";
+        } else if (cost < 0) {
+            // Wenn cost negativ ist, das Minus-Zeichen entfernen für den Text
+            costSpan.textContent = Math.abs(cost) + " Coins (Ertrag)";
+            costSpan.className = "font-bold text-success";
         } else {
-            costSpan.textContent = cost + " (Du erhältst Coins)";
+            costSpan.textContent = "0 Coins (Direkter Tausch)";
             costSpan.className = "font-bold text-success";
         }
         
-        // Budget-Check
+        // Budget-Check (nur prüfen, wenn es etwas kostet)
         if (cost > myBudget) {
             warning.style.display = 'block';
             submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
         } else {
             warning.style.display = 'none';
             submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
         }
     }
 
