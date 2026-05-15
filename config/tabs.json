@@ -42,6 +42,14 @@
         "file": "pages/transfer.php"
     },
     {
+        "id": "admin",
+        "icon": "🛡️",
+        "title": "Admin",
+        "file": "pages/admin.php",
+        "bottom": true,
+        "admin_only": true
+    },
+    {
         "id": "settings",
         "icon": "⚙️",
         "title": "Einstellungen",
