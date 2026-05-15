@@ -52,101 +52,107 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================
     // TRANSFERMARKT LOGIK
     // =========================================
-    function switchMarketTab(tabId) {
-        // 1. Ansichten umschalten
+    // Mach diese Funktionen global verfügbar, falls sie inline im HTML aufgerufen werden
+    window.switchMarketTab = function(tabId) {
         const marketView = document.getElementById('market-view');
         const requestsView = document.getElementById('requests-view');
         
-        // Sicherheits-Check, ob wir überhaupt auf der Transfer-Seite sind
         if (!marketView || !requestsView) return; 
 
         marketView.style.display = (tabId === 'market') ? 'block' : 'none';
         requestsView.style.display = (tabId === 'requests') ? 'block' : 'none';
         
-        // 2. Button-Styles anpassen (sicherer Weg)
         const btns = document.querySelectorAll('.tab-switcher .tab-btn');
         btns.forEach(btn => btn.classList.remove('active'));
         
-        // Wir suchen den Button, der geklickt wurde, anhand des onclick-Attributs
         const clickedBtn = document.querySelector(`.tab-switcher .tab-btn[onclick*="${tabId}"]`);
-        if (clickedBtn) {
-            clickedBtn.classList.add('active');
-        }
-    }
+        if (clickedBtn) clickedBtn.classList.add('active');
+    };
 
     let currentTargetPrice = 0;
+    let currentTargetId = null; // Neu: Ziel-ID speichern
 
-    function openTradeModal(playerName, price) {
-        document.getElementById('modal-target-player').textContent = playerName;
-        document.getElementById('modal-target-price').textContent = price;
+    window.openTradeModal = function(playerId, playerName, price) {
+        currentTargetId = playerId;
         currentTargetPrice = price;
         
-        // Modal anzeigen & Reset
+        document.getElementById('modal-target-player').textContent = playerName;
+        document.getElementById('modal-target-price').textContent = price;
+        
+        // Reset Modal
         document.getElementById('trade-offer-player').value = "";
         document.getElementById('trade-calculation').style.display = 'none';
         document.getElementById('submit-trade-btn').disabled = true;
         document.getElementById('trade-modal').style.display = 'flex';
-    }
+    };
 
-    function closeTradeModal() {
+    window.closeTradeModal = function() {
         document.getElementById('trade-modal').style.display = 'none';
-    }
+        currentTargetId = null;
+    };
 
-    function calculateTrade() {
+    window.calculateTrade = function() {
         const select = document.getElementById('trade-offer-player');
-        const myPlayerPrice = parseInt(select.value);
+        const selectedOption = select.options[select.selectedIndex];
         
         const calcBox = document.getElementById('trade-calculation');
         const costSpan = document.getElementById('trade-cost');
         const warning = document.getElementById('trade-warning');
         const submitBtn = document.getElementById('submit-trade-btn');
         
-        // Wenn nichts Echtes ausgewählt ist (z.B. "Spieler wählen")
-        if (isNaN(myPlayerPrice)) {
+        // Abbruch, wenn noch der Standard-Text "-- Tauschspieler zwingend wählen --" aktiv ist
+        if (!selectedOption || selectedOption.value === "" || selectedOption.disabled) {
             calcBox.style.display = 'none';
             submitBtn.disabled = true;
             return;
         }
         
+        // Preis aus dem data-Attribut lesen
+        const myPlayerPrice = parseInt(selectedOption.getAttribute('data-price')) || 0;
+        const myBudget = parseInt(document.getElementById('current-budget').value) || 0;
+        
+        // Berechnung: Preis Zielspieler minus Preis meines Spielers
         const cost = currentTargetPrice - myPlayerPrice;
-        const myBudget = parseInt(document.getElementById('current-budget').value);
         
         calcBox.style.display = 'block';
         
         if (cost > 0) {
-            costSpan.textContent = cost + " Coins";
+            costSpan.textContent = cost + " Coins zahlen";
             costSpan.className = "font-bold text-danger";
         } else if (cost < 0) {
-            // Wenn cost negativ ist, das Minus-Zeichen entfernen für den Text
-            costSpan.textContent = Math.abs(cost) + " Coins (Ertrag)";
+            costSpan.textContent = Math.abs(cost) + " Coins erhalten";
             costSpan.className = "font-bold text-success";
         } else {
             costSpan.textContent = "0 Coins (Direkter Tausch)";
             costSpan.className = "font-bold text-success";
         }
         
-        // Budget-Check (nur prüfen, wenn es etwas kostet)
+        // Budget-Check
         if (cost > myBudget) {
             warning.style.display = 'block';
             submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.5';
         } else {
             warning.style.display = 'none';
             submitBtn.disabled = false;
-            submitBtn.style.opacity = '1';
         }
-    }
+    };
 
-    function sendTradeRequest() {
-        alert("Anfrage wurde erfolgreich an das andere Team gesendet!");
+    window.sendTradeRequest = function() {
+        const select = document.getElementById('trade-offer-player');
+        const offerPlayerId = select.value;
+        
+        // Hier würdest du später den fetch() Request ans PHP Backend machen!
+        console.log("Sende an Backend: Ziel-Spieler ID:", currentTargetId, "Angebotener Spieler ID:", offerPlayerId);
+        
+        alert("Anfrage wurde erfolgreich vorbereitet! (Siehe Konsole)");
         closeTradeModal();
-    }
+    };
 
-    function acceptTrade(id) {
-        alert("Anfrage " + id + " angenommen! (Backend-Verbindung fehlt noch)");
-    }
+    window.acceptTrade = function(id) {
+        alert("Anfrage " + id + " angenommen!");
+    };
 
-    function declineTrade(id) {
+    window.declineTrade = function(id) {
         alert("Anfrage " + id + " abgelehnt.");
-    }
+    };
 });

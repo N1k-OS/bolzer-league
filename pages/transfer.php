@@ -8,24 +8,21 @@ $data = json_decode($market_json, true);
         <h2>Transfermarkt</h2>
         <p>Spieler tauschen und Kader planen.</p>
     </div>
-    <!-- Budget-Anzeige oben rechts -->
     <div class="budget-badge">
-        💰 <?php echo $data['my_team_budget']; ?> BL-Coins
+        💰 <span id="display-budget"><?php echo $data['my_team_budget']; ?></span> BL-Coins
     </div>
 </div>
 
-<!-- Sub-Navigation im Transfer-Tab -->
 <div class="tab-switcher">
     <button class="tab-btn active" onclick="switchMarketTab('market')">Markt</button>
     <button class="tab-btn" onclick="switchMarketTab('requests')">
         Anfragen 
-        <?php if(count($data['requests_in']) > 0): ?>
+        <?php if(!empty($data['requests_in'])): ?>
             <span class="notification-dot"><?php echo count($data['requests_in']); ?></span>
         <?php endif; ?>
     </button>
 </div>
 
-<!-- BEREICH 1: DER MARKT -->
 <div id="market-view" class="market-section">
     <div class="card-container">
         <div class="list-header">
@@ -48,9 +45,8 @@ $data = json_decode($market_json, true);
                     <div class="col-pts font-bold">
                         <?php echo $player['price']; ?>
                     </div>
-                    <!-- Tauschen Button -->
                     <div style="width: 40px; text-align: right;">
-                        <button class="icon-btn color-primary" onclick="openTradeModal('<?php echo $player['name']; ?>', <?php echo $player['price']; ?>)">🔄</button>
+                        <button class="icon-btn color-primary" onclick="openTradeModal(<?php echo $player['id']; ?>, '<?php echo htmlspecialchars($player['name'], ENT_QUOTES); ?>', <?php echo $player['price']; ?>)">🔄</button>
                     </div>
                 </li>
             <?php endforeach; ?>
@@ -58,10 +54,11 @@ $data = json_decode($market_json, true);
     </div>
 </div>
 
-<!-- BEREICH 2: ANFRAGEN (Nur für den Captain relevant) -->
 <div id="requests-view" class="market-section" style="display: none;">
     <?php if ($data['my_role'] !== 'captain'): ?>
         <div class="alert-box">Nur der Team-Captain kann Anfragen bearbeiten.</div>
+    <?php elseif(empty($data['requests_in'])): ?>
+        <div class="alert-box">Du hast aktuell keine offenen Anfragen.</div>
     <?php else: ?>
         <?php foreach ($data['requests_in'] as $req): ?>
             <div class="trade-request-card">
@@ -84,31 +81,25 @@ $data = json_decode($market_json, true);
     <?php endif; ?>
 </div>
 
-<!-- HIER KOMMT SPÄTER DAS POPUP FÜR DAS TAUSCH-FORMULAR HIN -->
- <!-- =========================================
-     DAS TAUSCH-MODAL (Popup)
-     ========================================= -->
 <div id="trade-modal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>Tauschanfrage erstellen</h3>
+            <h3>Transferanfrage</h3>
             <button class="icon-btn" onclick="closeTradeModal()">❌</button>
         </div>
         
         <div class="modal-body">
-            <p>Du möchtest <strong id="modal-target-player" class="color-primary">Spieler X</strong> verpflichten.</p>
-            <p>Sein Marktwert: <strong id="modal-target-price">0</strong> Coins.</p>
+            <p>Zielspieler: <strong id="modal-target-player" class="color-primary">Spieler X</strong></p>
+            <p>Marktwert: <strong id="modal-target-price">0</strong> Coins</p>
             
             <hr style="margin: 15px 0; border: 0; border-top: 1px solid var(--list-divider);">
             
             <div class="form-group">
-                <label for="trade-offer-player">Wen bietest du im Tausch an?</label>
+                <label for="trade-offer-player">Wen gibst du im Tausch ab?</label>
                 <select id="trade-offer-player" class="form-select" onchange="calculateTrade()">
-                    <option value="" disabled selected>-- Spieler wählen --</option>
-                    <?php 
-                    // Hier laden wir die eigenen Spieler ins Dropdown
-                    foreach ($data['my_players'] as $my_player): ?>
-                        <option value="<?php echo $my_player['price']; ?>">
+                    <option value="" disabled selected>-- Tauschspieler zwingend wählen --</option>
+                    <?php foreach ($data['my_players'] as $my_player): ?>
+                        <option value="<?php echo $my_player['id']; ?>" data-price="<?php echo $my_player['price']; ?>">
                             <?php echo htmlspecialchars($my_player['name']); ?> (Wert: <?php echo $my_player['price']; ?>)
                         </option>
                     <?php endforeach; ?>
@@ -117,8 +108,8 @@ $data = json_decode($market_json, true);
             
             <div id="trade-calculation" class="trade-calc-box" style="display: none;">
                 <strong>Kostenübersicht:</strong><br>
-                Zahlung an anderes Team: <span id="trade-cost" class="font-bold">0</span> Coins<br>
-                <small id="trade-warning" class="text-danger" style="display:none;">Nicht genug Budget!</small>
+                Differenzbetrag: <span id="trade-cost" class="font-bold">0</span><br>
+                <small id="trade-warning" class="text-danger" style="display:none; margin-top: 5px;">Nicht genug Budget für diesen Transfer!</small>
             </div>
         </div>
         
@@ -128,5 +119,4 @@ $data = json_decode($market_json, true);
     </div>
 </div>
 
-<!-- Eine unsichtbare Variable für das JS speichern -->
 <input type="hidden" id="current-budget" value="<?php echo $data['my_team_budget']; ?>">
