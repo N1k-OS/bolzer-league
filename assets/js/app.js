@@ -155,4 +155,37 @@ document.addEventListener("DOMContentLoaded", () => {
     window.declineTrade = function(id) {
         alert("Anfrage " + id + " abgelehnt.");
     };
+
+    // =========================================
+    // EINSTELLUNGEN LOGIK
+    // =========================================
+    function saveSettings(event, formType) {
+        // Verhindert das Neuladen der Seite durch das Formular
+        event.preventDefault();
+        
+        // Kleines visuelles Feedback
+        const btn = event.target.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        
+        btn.textContent = "Gespeichert ✔";
+        btn.style.backgroundColor = "#2ed573";
+        
+        // Simuliert eine Verzögerung beim Speichern im Backend
+        setTimeout(() => {
+            btn.textContent = originalText;
+            // Beim Passwort-Button wieder die ursprüngliche Farbe herstellen
+            if(formType === 'password') {
+                btn.style.backgroundColor = "#ff4757";
+            } else {
+                btn.style.backgroundColor = ""; // Nimmt CSS Standard wieder an
+            }
+        }, 2000);
+    }
+
+    function logout() {
+        if(confirm("Möchtest du dich wirklich abmelden?")) {
+            alert("Logout erfolgreich. (Weiterleitung fehlt noch)");
+            // Später: window.location.href = "login.php";
+        }
+    }
 });
