@@ -15,7 +15,7 @@ $db = $database->getConnection();
 $action = $_POST['action'] ?? '';
 
 // ---------------------------------------------------------
-// SPIELPLAN GENERIEREN
+// 1. SPIELPLAN GENERIEREN (Runde 1)
 // ---------------------------------------------------------
 if ($action === 'generate_matchplan') {
     try {
@@ -57,7 +57,7 @@ if ($action === 'generate_matchplan') {
 
             $total_rounds = $num_teams - 1;
             $matches_per_round = $num_teams / 2;
-            $cycles = ($mode === 'lang') ? 2 : 1; 
+            $cycles = ($mode === 'lang') ? 2 : 1;
             $current_matchday = 1;
 
             for ($cycle = 0; $cycle < $cycles; $cycle++) {
@@ -90,51 +90,27 @@ if ($action === 'generate_matchplan') {
         // ==========================================
         // MODUS: ELIMINATION (K.O. System)
         // ==========================================
-        elseif ($mode === 'kurz') { 
+        elseif ($mode === 'kurz') {
             
             if ($num_teams % 2 != 0) {
-                echo json_encode(['success' => false, 'message' => 'Elimination benötigt eine GERADE Anzahl an Teams! (Hinweis: Am besten 4, 8 oder 16)']);
+                echo json_encode(['success' => false, 'message' => 'Elimination benötigt eine GERADE Anzahl an Teams!']);
                 exit;
             }
 
             shuffle($teams);
 
-            if ($num_teams == 4) {
-                // RUNDE 1: Halbfinale
-                $db->prepare("INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 1)")->execute([$event_id]);
-                $md1_id = $db->lastInsertId();
+            // Wir erstellen IMMER nur Runde 1. Egal ob 4 oder 6 Teams.
+            $db->prepare("INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 1)")->execute([$event_id]);
+            $md1_id = $db->lastInsertId();
 
-                // Spiel 1 (A vs B)
-                $stmt = $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)");
-                $stmt->execute([$md1_id, $teams[0], $teams[1]]);
-                
-                // Spiel 2 (C vs D)
-                $stmt->execute([$md1_id, $teams[2], $teams[3]]);
-
-                // FIX: RUNDE 2 ERSTELLEN, bevor wir $md2_id nutzen!
-                $db->prepare("INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 2)")->execute([$event_id]);
-                $md2_id = $db->lastInsertId();
-
-                // Finale & Spiel um Platz 3 
-                $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, NULL, NULL)")->execute([$md2_id]);
-                $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, NULL, NULL)")->execute([$md2_id]);
-
-                echo json_encode(['success' => true, 'message' => 'Elimination-Baum für 4 Teams generiert! Halbfinals stehen fest, Finale wartet auf Ergebnisse.']);
-            } 
-            elseif ($num_teams == 6) {
-                $db->prepare("INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 1)")->execute([$event_id]);
-                $md1_id = $db->lastInsertId();
-
-                $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)")->execute([$md1_id, $teams[0], $teams[1]]);
-                $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)")->execute([$md1_id, $teams[2], $teams[3]]);
-                $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)")->execute([$md1_id, $teams[4], $teams[5]]);
-
-                echo json_encode(['success' => true, 'message' => 'Elimination für 6 Teams gestartet. Erste Runde generiert (3 Duelle).']);
-            } 
-            else {
-                echo json_encode(['success' => false, 'message' => 'Elimination für diese Anzahl an Teams (' . $num_teams . ') ist aktuell nicht unterstützt.']);
-                exit;
+            $stmt = $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)");
+            
+            // Paarungen (immer 2 Teams gegeneinander)
+            for ($i = 0; $i < $num_teams; $i += 2) {
+                $stmt->execute([$md1_id, $teams[$i], $teams[$i+1]]);
             }
+
+            echo json_encode(['success' => true, 'message' => "K.O.-Baum gestartet! Runde 1 mit " . ($num_teams/2) . " Duellen generiert."]);
         }
 
     } catch (Exception $e) {
@@ -143,7 +119,7 @@ if ($action === 'generate_matchplan') {
 }
 
 // ---------------------------------------------------------
-// NÄCHSTE RUNDE BERECHNEN (Nur für Elimination/kurz)
+// 2. NÄCHSTE RUNDE BERECHNEN (Nur K.O.)
 // ---------------------------------------------------------
 elseif ($action === 'calculate_next_round') {
     try {
@@ -151,12 +127,12 @@ elseif ($action === 'calculate_next_round') {
         $event = $event_stmt->fetch();
 
         if (!$event || $event['duration_type'] !== 'kurz') {
-            echo json_encode(['success' => false, 'message' => 'Nur im Elimination-Modus verfügbar.']);
+            echo json_encode(['success' => false, 'message' => 'Nur im Elimination-Modus (K.O.) verfügbar.']);
             exit;
         }
         $event_id = $event['id'];
 
-        // 1. Finde den LETZTEN Spieltag heraus
+        // Finde den LETZTEN Spieltag
         $md_stmt = $db->prepare("SELECT id, matchday_number FROM matchdays WHERE event_id = ? ORDER BY matchday_number DESC LIMIT 1");
         $md_stmt->execute([$event_id]);
         $last_md = $md_stmt->fetch();
@@ -166,23 +142,19 @@ elseif ($action === 'calculate_next_round') {
             exit;
         }
 
-        // 2. Prüfen, ob alle Spiele des letzten Spieltags beendet sind
+        // Prüfen, ob alle Spiele des letzten Spieltags beendet sind
         $matches_stmt = $db->prepare("SELECT id, team1_id, team2_id, score1, score2, status FROM matches WHERE matchday_id = ?");
         $matches_stmt->execute([$last_md['id']]);
         $last_matches = $matches_stmt->fetchAll();
 
+        $winners = [];
+        $losers = [];
         foreach ($last_matches as $m) {
             if ($m['status'] !== 'finished') {
                 echo json_encode(['success' => false, 'message' => 'Es sind noch nicht alle Spiele der aktuellen Runde beendet!']);
                 exit;
             }
-        }
-
-        // 3. Gewinner und Verlierer der letzten Runde ermitteln
-        $winners = [];
-        $losers = [];
-        foreach ($last_matches as $m) {
-            if ($m['score1'] > $m['score2'] || $m['score1'] == $m['score2']) { // Bei Unentschieden gewinnt vorerst Team 1
+            if ($m['score1'] > $m['score2'] || $m['score1'] == $m['score2']) {
                 $winners[] = $m['team1_id'];
                 $losers[] = $m['team2_id'];
             } else {
@@ -191,45 +163,45 @@ elseif ($action === 'calculate_next_round') {
             }
         }
 
-        // 4. NEUE RUNDE ERSTELLEN
+        // NEUE RUNDE ERSTELLEN
         $next_md_num = $last_md['matchday_number'] + 1;
         $db->prepare("INSERT INTO matchdays (event_id, matchday_number) VALUES (?, ?)")->execute([$event_id, $next_md_num]);
         $new_md_id = $db->lastInsertId();
 
-        // 5. PAARUNGEN ERSTELLEN
         $create_match = $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)");
-
         $num_winners = count($winners);
 
-        // FALL A: Normale K.O. Runde (Potenzen von 2: 2, 4, 8 Gewinner)
-        if ($num_winners % 2 == 0) {
-            // Gewinner spielen gegeneinander (nächstes Halbfinale/Finale)
+        // FALL A: 2 Gewinner (Finale)
+        if ($num_winners == 2) {
+            $create_match->execute([$new_md_id, $winners[0], $winners[1]]); // Finale
+            $create_match->execute([$new_md_id, $losers[0], $losers[1]]); // Platz 3
+            echo json_encode(['success' => true, 'message' => "Finale generiert!"]);
+        }
+        // FALL B: 4, 8 Gewinner (Normale K.O. Runde)
+        elseif ($num_winners % 2 == 0) {
             for ($i = 0; $i < $num_winners; $i += 2) {
                 $create_match->execute([$new_md_id, $winners[$i], $winners[$i+1]]);
             }
-            // Verlierer spielen gegeneinander (Platzierungsspiele)
+            // Verlierer gegeneinander (Platzierung)
             for ($i = 0; $i < count($losers); $i += 2) {
                 $create_match->execute([$new_md_id, $losers[$i], $losers[$i+1]]);
             }
-            echo json_encode(['success' => true, 'message' => "Runde $next_md_num generiert!"]);
+            echo json_encode(['success' => true, 'message' => "Nächste K.O.-Runde generiert!"]);
         } 
-        // FALL B: Der 6-Teams Sonderfall (3 Gewinner, 3 Verlierer)
+        // FALL C: 3 Gewinner (6-Teams Sonderfall)
         elseif ($num_winners == 3) {
-            // Wir erstellen die "Mini-Liga" (A-B, B-C, A-C) für Gewinner und Verlierer
-            // Gewinner (Platz 1-3)
+            // Gewinner (Mini-Liga)
             $create_match->execute([$new_md_id, $winners[0], $winners[1]]);
             $create_match->execute([$new_md_id, $winners[1], $winners[2]]);
             $create_match->execute([$new_md_id, $winners[0], $winners[2]]);
-            
-            // Verlierer (Platz 4-6)
+            // Verlierer (Mini-Liga)
             $create_match->execute([$new_md_id, $losers[0], $losers[1]]);
             $create_match->execute([$new_md_id, $losers[1], $losers[2]]);
             $create_match->execute([$new_md_id, $losers[0], $losers[2]]);
-            
-            echo json_encode(['success' => true, 'message' => "Runde $next_md_num (Mini-Liga für 6 Teams) generiert!"]);
-        } 
-        else {
-            echo json_encode(['success' => false, 'message' => "System kann für $num_winners verbleibende Teams keinen Plan berechnen."]);
+            echo json_encode(['success' => true, 'message' => "Mini-Ligen für Platz 1-3 und 4-6 generiert!"]);
+        } else {
+            // Wenn man die Mini-Liga bei 6 Teams beendet hat, gibt es 0 Gewinner, die ein K.O.-System weiterführen können
+            echo json_encode(['success' => false, 'message' => "Das Turnier ist beendet. Es kann keine weitere Runde generiert werden."]);
         }
 
     } catch (Exception $e) {
@@ -238,7 +210,7 @@ elseif ($action === 'calculate_next_round') {
 }
 
 // ---------------------------------------------------------
-// SPIEL ERGEBNIS MANUELL EINTRAGEN & TURNIERBAUM UPDATE
+// 3. SPIEL ERGEBNIS MANUELL EINTRAGEN
 // ---------------------------------------------------------
 elseif ($action === 'submit_result') {
     $match_id = $_POST['match_id'] ?? 0;
@@ -251,28 +223,13 @@ elseif ($action === 'submit_result') {
     }
 
     try {
-        $db->beginTransaction();
-
-        // 1. Das Spiel auf 'finished' setzen und Tore eintragen
+        // Hier tragen wir NUR die Tore ein. K.O.-Logik passiert in Action 2!
         $update_stmt = $db->prepare("UPDATE matches SET score1 = ?, score2 = ?, status = 'finished' WHERE id = ?");
         $update_stmt->execute([$score1, $score2, $match_id]);
 
-        // 2. Herausfinden, zu welchem Event und welchem Modus dieses Spiel gehört
-        $match_info = $db->prepare("
-            SELECT m.team1_id, m.team2_id, md.event_id, md.matchday_number, e.duration_type 
-            FROM matches m 
-            JOIN matchdays md ON m.matchday_id = md.id 
-            JOIN events e ON md.event_id = e.id 
-            WHERE m.id = ?
-        ");
-        $match_info->execute([$match_id]);
-        $info = $match_info->fetch();
-
-        $db->commit();
         echo json_encode(['success' => true, 'message' => 'Ergebnis gespeichert!']);
 
     } catch (Exception $e) {
-        $db->rollBack();
         echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
     }
 }
