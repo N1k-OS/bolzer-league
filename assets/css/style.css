@@ -343,3 +343,8 @@ body {
     flex-shrink: 0;
     text-align: right;
 }
+
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
