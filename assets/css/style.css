@@ -348,3 +348,108 @@ body {
     display: flex;
     flex-direction: column;
 }
+
+/* =========================================
+   TAB: BEGEGNUNGEN (Matches)
+   ========================================= */
+
+.matchday-group {
+    margin-bottom: 20px;
+}
+
+.matchday-group:last-child {
+    margin-bottom: 5px;
+}
+
+.matchday-label {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: gray;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-left: 5px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.match-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.match-time {
+    font-size: 0.75rem;
+    color: var(--primary-color);
+    text-align: center;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.match-teams {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.m-team {
+    display: flex;
+    align-items: center;
+    flex: 1; /* Beide Teams nehmen exakt gleich viel Platz ein */
+}
+
+.right-align {
+    justify-content: flex-end;
+}
+
+.left-align {
+    justify-content: flex-start;
+}
+
+.m-icon {
+    font-size: 1.2rem;
+    margin: 0 8px;
+}
+
+.m-name {
+    font-size: 0.95rem;
+}
+
+.m-vs {
+    font-size: 0.8rem;
+    color: gray;
+    width: 30px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Spezifisches Design für beendete Spiele */
+.match-card.finished {
+    background-color: var(--accordion-content-bg); /* Leicht abgedunkelt */
+}
+
+.m-score {
+    font-size: 1.2rem;
+    font-weight: bold;
+    width: 50px;
+    text-align: center;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 4px 0;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.match-mvp {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: gray;
+}
