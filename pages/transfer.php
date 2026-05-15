@@ -85,3 +85,48 @@ $data = json_decode($market_json, true);
 </div>
 
 <!-- HIER KOMMT SPÄTER DAS POPUP FÜR DAS TAUSCH-FORMULAR HIN -->
+ <!-- =========================================
+     DAS TAUSCH-MODAL (Popup)
+     ========================================= -->
+<div id="trade-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Tauschanfrage erstellen</h3>
+            <button class="icon-btn" onclick="closeTradeModal()">❌</button>
+        </div>
+        
+        <div class="modal-body">
+            <p>Du möchtest <strong id="modal-target-player" class="color-primary">Spieler X</strong> verpflichten.</p>
+            <p>Sein Marktwert: <strong id="modal-target-price">0</strong> Coins.</p>
+            
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid var(--list-divider);">
+            
+            <div class="form-group">
+                <label for="trade-offer-player">Wen bietest du im Tausch an?</label>
+                <select id="trade-offer-player" class="form-select" onchange="calculateTrade()">
+                    <option value="" disabled selected>-- Spieler wählen --</option>
+                    <?php 
+                    // Hier laden wir die eigenen Spieler ins Dropdown
+                    foreach ($data['my_players'] as $my_player): ?>
+                        <option value="<?php echo $my_player['price']; ?>">
+                            <?php echo htmlspecialchars($my_player['name']); ?> (Wert: <?php echo $my_player['price']; ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <div id="trade-calculation" class="trade-calc-box" style="display: none;">
+                <strong>Kostenübersicht:</strong><br>
+                Zahlung an anderes Team: <span id="trade-cost" class="font-bold">0</span> Coins<br>
+                <small id="trade-warning" class="text-danger" style="display:none;">Nicht genug Budget!</small>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="primary-btn" id="submit-trade-btn" disabled onclick="sendTradeRequest()">Anfrage senden</button>
+        </div>
+    </div>
+</div>
+
+<!-- Eine unsichtbare Variable für das JS speichern -->
+<input type="hidden" id="current-budget" value="<?php echo $data['my_team_budget']; ?>">
