@@ -69,13 +69,16 @@ function openAdminModal(actionType) {
                 <input type="text" id="new-event-name" class="form-input" placeholder="z.B. Sommer-Turnier">
             </div>
             <div class="form-group">
-                <label>Dauer / Modus</label>
+                <label>Modus (Turnier-Art)</label>
                 <select id="new-event-duration" class="form-select">
-                    <option value="kurz">Kurz (Jeder 1x gegeneinander)</option>
-                    <option value="standard">Standard (Hin- und Rückrunde)</option>
+                    <option value="kurz">Elimination (K.O. System für 4, 8, 16 Teams)</option>
+                    <option value="standard">Liga - Einfach (Jeder 1x gegen Jeden)</option>
+                    <option value="lang">Liga - Erweitert (Hin- und Rückrunde)</option>
                 </select>
+                <p style="font-size:0.75rem; color:gray; margin-top:5px;">
+                    Hinweis zu Elimination: Funktioniert am besten mit Potenzen von 2. Bei ungeraden Teams gibt es einen Fehler. Bei 6 Teams gibt es Sonderregeln.
+                </p>
             </div>
-            <p style="font-size:0.8rem; color:gray;">Hinweis: Das alte Event wird dabei archiviert.</p>
         `;
         submitBtn.onclick = createEvent;
     } else if (actionType === 'result') {
