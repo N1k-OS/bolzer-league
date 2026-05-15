@@ -17,8 +17,10 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
     <div style="display: flex; flex-direction: column; gap: 15px;">
         <button class="primary-btn" onclick="openAdminModal('event')">Neues Event erstellen</button>
         
-        <!-- Button zum Erstellen des Spielplans (Matches generieren) -->
-        <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="generateMatchplan()">Spielplan generieren</button>
+        <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="generateMatchplan()">1. Spielplan generieren (Runde 1)</button>
+        
+        <!-- NEUER BUTTON -->
+        <button class="primary-btn" style="background-color: #ffd700; color: black;" onclick="calculateNextRound()">2. Nächste Runde berechnen (Nur K.O.)</button>
         
         <button class="primary-btn danger-btn" onclick="endCurrentEvent()">Aktuelles Event beenden</button>
     </div>
