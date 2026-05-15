@@ -54,14 +54,13 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
 </div>
 
 <script>
-// ... (Die openAdminModal und closeAdminModal Funktionen bleiben gleich) ...
-
-function openAdminModal(actionType) {
+async function openAdminModal(actionType) {
     const title = document.getElementById('admin-modal-title');
     const body = document.getElementById('admin-modal-body');
     const submitBtn = document.getElementById('admin-submit-btn');
     
     if (actionType === 'event') {
+        // ... (Dein bisheriger Code für Event erstellen bleibt gleich)
         title.textContent = "Neues Event erstellen";
         body.innerHTML = `
             <div class="form-group">
@@ -75,16 +74,47 @@ function openAdminModal(actionType) {
                     <option value="standard">Liga - Einfach (Jeder 1x gegen Jeden)</option>
                     <option value="lang">Liga - Erweitert (Hin- und Rückrunde)</option>
                 </select>
-                <p style="font-size:0.75rem; color:gray; margin-top:5px;">
-                    Hinweis zu Elimination: Funktioniert am besten mit Potenzen von 2. Bei ungeraden Teams gibt es einen Fehler. Bei 6 Teams gibt es Sonderregeln.
-                </p>
             </div>
         `;
         submitBtn.onclick = createEvent;
-    } else if (actionType === 'result') {
-        title.textContent = "Ergebnis eintragen";
-        body.innerHTML = `<p>Hier kommt später ein Dropdown mit allen offenen Spielen hin.</p>`;
-        submitBtn.onclick = function() { alert('Noch nicht implementiert'); closeAdminModal(); };
+    } 
+    
+    // HIER IST DAS NEUE ERGEBNIS-FORMULAR
+    else if (actionType === 'result') {
+        title.textContent = "Lade Spiele...";
+        body.innerHTML = "<p>Bitte warten...</p>";
+        document.getElementById('admin-modal').style.display = 'flex';
+
+        try {
+            // Holt alle offenen Spiele aus der Datenbank
+            const response = await fetch('api/get_matches.php');
+            const matches = await response.json();
+
+            title.textContent = "Ergebnis eintragen";
+            
+            if (matches.length === 0) {
+                body.innerHTML = "<p class='text-danger'>Es gibt keine offenen Spiele, bei denen beide Teams feststehen.</p>";
+                submitBtn.style.display = 'none';
+            } else {
+                let options = matches.map(m => `<option value="${m.id}">Tag ${m.matchday_number} | ${m.team1} vs ${m.team2}</option>`).join('');
+                
+                body.innerHTML = `
+                    <div class="form-group">
+                        <label>Welches Spiel?</label>
+                        <select id="result-match-id" class="form-select">${options}</select>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px; align-items: center;">
+                        <input type="number" id="result-score1" class="form-input" style="width: 60px; text-align: center;" placeholder="0" min="0">
+                        <span> : </span>
+                        <input type="number" id="result-score2" class="form-input" style="width: 60px; text-align: center;" placeholder="0" min="0">
+                    </div>
+                `;
+                submitBtn.style.display = 'block';
+                submitBtn.onclick = submitResult;
+            }
+        } catch(e) {
+            body.innerHTML = "<p class='text-danger'>Fehler beim Laden der Spiele.</p>";
+        }
     }
     
     document.getElementById('admin-modal').style.display = 'flex';
@@ -94,42 +124,33 @@ function closeAdminModal() {
     document.getElementById('admin-modal').style.display = 'none';
 }
 
-function createEvent() {
-    alert("Noch nicht implementiert.");
-    closeAdminModal();
-}
+function createEvent() { alert("Noch nicht implementiert."); closeAdminModal(); }
+async function generateMatchplan() { /* ... Dein alter Code bleibt ... */ }
 
-// HIER IST DIE NEUE FUNKTION!
-async function generateMatchplan() {
-    if(confirm("Möchtest du jetzt den Spielplan für das aktive Event generieren? (Alte Spiele dieses Events werden gelöscht!)")) {
+// NEUE FUNKTION: ERGEBNIS AN DAS BACKEND SENDEN
+async function submitResult() {
+    const matchId = document.getElementById('result-match-id').value;
+    const s1 = document.getElementById('result-score1').value || 0;
+    const s2 = document.getElementById('result-score2').value || 0;
+
+    const formData = new FormData();
+    formData.append('action', 'submit_result');
+    formData.append('match_id', matchId);
+    formData.append('score1', s1);
+    formData.append('score2', s2);
+
+    try {
+        const response = await fetch('api/admin.php', { method: 'POST', body: formData });
+        const result = await response.json();
         
-        // Wir sperren den Button kurz, damit man nicht 5x draufklickt
-        const formData = new FormData();
-        formData.append('action', 'generate_matchplan');
-
-        try {
-            const response = await fetch('api/admin.php', {
-                method: 'POST',
-                body: formData
-            });
-            const result = await response.json();
-            
-            if(result.success) {
-                alert(result.message);
-                // Laden wir die Seite neu, damit wir die neuen Matches direkt sehen können
-                window.location.href = "index.php?page=matches";
-            } else {
-                alert("Fehler: " + result.message);
-            }
-        } catch(e) {
-            alert("Server-Fehler. Bitte prüfen.");
+        if(result.success) {
+            alert(result.message);
+            window.location.href = "index.php?page=matches";
+        } else {
+            alert("Fehler: " + result.message);
         }
-    }
-}
-
-function endCurrentEvent() {
-    if(confirm("Bist du sicher? Dies beendet das aktuelle Turnier unwiderruflich.")) {
-        alert("Noch nicht implementiert.");
+    } catch(e) {
+        alert("Server-Fehler.");
     }
 }
 </script>

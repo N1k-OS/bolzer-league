@@ -146,4 +146,91 @@ if ($action === 'generate_matchplan') {
         echo json_encode(['success' => false, 'message' => 'Datenbank-Fehler: ' . $e->getMessage()]);
     }
 }
+
+// ---------------------------------------------------------
+// SPIEL ERGEBNIS MANUELL EINTRAGEN & TURNIERBAUM UPDATE
+// ---------------------------------------------------------
+elseif ($action === 'submit_result') {
+    $match_id = $_POST['match_id'] ?? 0;
+    $score1 = $_POST['score1'] ?? 0;
+    $score2 = $_POST['score2'] ?? 0;
+
+    if (!$match_id) {
+        echo json_encode(['success' => false, 'message' => 'Kein Spiel ausgewählt.']);
+        exit;
+    }
+
+    try {
+        $db->beginTransaction();
+
+        // 1. Das Spiel auf 'finished' setzen und Tore eintragen
+        $update_stmt = $db->prepare("UPDATE matches SET score1 = ?, score2 = ?, status = 'finished' WHERE id = ?");
+        $update_stmt->execute([$score1, $score2, $match_id]);
+
+        // 2. Herausfinden, zu welchem Event und welchem Modus dieses Spiel gehört
+        $match_info = $db->prepare("
+            SELECT m.team1_id, m.team2_id, md.event_id, md.matchday_number, e.duration_type 
+            FROM matches m 
+            JOIN matchdays md ON m.matchday_id = md.id 
+            JOIN events e ON md.event_id = e.id 
+            WHERE m.id = ?
+        ");
+        $match_info->execute([$match_id]);
+        $info = $match_info->fetch();
+
+        // 3. ELIMINATION-LOGIK (Nur bei 'kurz' und Spieltag 1 / Halbfinale relevant!)
+        if ($info['duration_type'] === 'kurz' && $info['matchday_number'] == 1) {
+            
+            // Wer hat gewonnen?
+            $winner_id = ($score1 > $score2) ? $info['team1_id'] : $info['team2_id'];
+            $loser_id = ($score1 > $score2) ? $info['team2_id'] : $info['team1_id'];
+            
+            // Bei Unentschieden im K.O. entscheidet aktuell Team 1 (kann später durch Elfmeterschießen ersetzt werden)
+            if ($score1 == $score2) {
+                $winner_id = $info['team1_id']; 
+                $loser_id = $info['team2_id'];
+            }
+
+            // Hole die Platzhalter-Spiele von Spieltag 2 (Finale & Platz 3)
+            $md2_stmt = $db->prepare("
+                SELECT m.id 
+                FROM matches m 
+                JOIN matchdays md ON m.matchday_id = md.id 
+                WHERE md.event_id = ? AND md.matchday_number = 2 
+                ORDER BY m.id ASC
+            ");
+            $md2_stmt->execute([$info['event_id']]);
+            $finals = $md2_stmt->fetchAll();
+
+            if (count($finals) == 2) {
+                $finale_id = $finals[0]['id'];
+                $platz3_id = $finals[1]['id'];
+
+                // Funktion, um das erste freie NULL-Feld in einem Match zu füllen
+                function fillBracketSlot($db, $match_id, $team_id) {
+                    $check = $db->prepare("SELECT team1_id, team2_id FROM matches WHERE id = ?");
+                    $check->execute([$match_id]);
+                    $m = $check->fetch();
+
+                    if (is_null($m['team1_id'])) {
+                        $db->prepare("UPDATE matches SET team1_id = ? WHERE id = ?")->execute([$team_id, $match_id]);
+                    } elseif (is_null($m['team2_id'])) {
+                        $db->prepare("UPDATE matches SET team2_id = ? WHERE id = ?")->execute([$team_id, $match_id]);
+                    }
+                }
+
+                // Gewinner ins Finale schieben, Verlierer ins Spiel um Platz 3
+                fillBracketSlot($db, $finale_id, $winner_id);
+                fillBracketSlot($db, $platz3_id, $loser_id);
+            }
+        }
+
+        $db->commit();
+        echo json_encode(['success' => true, 'message' => 'Ergebnis gespeichert!']);
+
+    } catch (Exception $e) {
+        $db->rollBack();
+        echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
+    }
+}
 ?>
