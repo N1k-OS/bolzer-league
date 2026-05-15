@@ -1,8 +1,7 @@
 <?php
-// Sicherheits-Check: Nur Admins dürfen diese Datei aufrufen!
 if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
     echo "<div class='alert-box text-danger'>Zugriff verweigert.</div>";
-    return; // Bricht das Einbinden hier ab
+    return; 
 }
 ?>
 
@@ -16,12 +15,8 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
     
     <div style="display: flex; flex-direction: column; gap: 15px;">
         <button class="primary-btn" onclick="openAdminModal('event')">Neues Event erstellen</button>
-        
         <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="generateMatchplan()">1. Spielplan generieren (Runde 1)</button>
-        
-        <!-- NEUER BUTTON -->
-        <button class="primary-btn" style="background-color: #ffd700; color: black;" onclick="calculateNextRound()">2. Nächste Runde berechnen (Nur K.O.)</button>
-        
+        <button class="primary-btn" style="background-color: var(--warning-text); color: var(--bg-color);" onclick="calculateNextRound()">2. Nächste Runde berechnen (Nur K.O.)</button>
         <button class="primary-btn danger-btn" onclick="endCurrentEvent()">Aktuelles Event beenden</button>
     </div>
 </div>
@@ -31,7 +26,7 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
     <p style="font-size: 0.85rem; color: gray; margin-bottom: 15px;">Hier markierst du Spiele als beendet oder überschreibst Ergebnisse.</p>
     
     <div style="display: flex; flex-direction: column; gap: 15px;">
-        <button class="primary-btn" style="background-color: #2ed573;" onclick="openAdminModal('result')">Ergebnis manuell eintragen</button>
+        <button class="primary-btn success-btn" onclick="openAdminModal('result')">Ergebnis manuell eintragen</button>
         <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="openAdminModal('transfer')">Transfer erzwingen (Override)</button>
     </div>
 </div>

@@ -70,9 +70,9 @@
         </form>
     </div>
     
-    <!-- Logout Button ganz unten -->
     <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
-        <button class="primary-btn" style="background-color: transparent; color: #ff4757; border: 1px solid #ff4757;" onclick="logout()">Abmelden</button>
+            <button class="primary-btn" style="background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color);" onclick="logout()">Abmelden</button>
+        </div>
     </div>
 
 </div>

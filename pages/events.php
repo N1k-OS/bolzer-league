@@ -19,7 +19,7 @@ try {
         ?>
         
         <h3 style="margin-bottom: 10px;">Jetzt Live</h3>
-        <div class="card-container" style="border-left: 4px solid #2ed573;">
+        <div class="card-container" style="border-left: 4px solid var(--success-color);">
             <div style="padding: 20px;">
                 <h3 style="margin-bottom: 5px; color: var(--primary-color);">🏆 <?php echo htmlspecialchars($active_event['name']); ?></h3>
                 <p style="color: gray; font-size: 0.9rem; margin-bottom: 15px;">
@@ -31,7 +31,7 @@ try {
 
         <?php
     } else {
-        echo "<div class='alert-box' style='padding: 20px; text-align: center; color: gray; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 20px;'>Aktuell läuft kein Event.</div>";
+        echo "<div class='alert-box'>Aktuell läuft kein Event.</div>";
     }
 
     // 2. Anstehende (geplante) Events finden
