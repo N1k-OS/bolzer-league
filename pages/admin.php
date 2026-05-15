@@ -54,6 +54,8 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
 </div>
 
 <script>
+// ... (Die openAdminModal und closeAdminModal Funktionen bleiben gleich) ...
+
 function openAdminModal(actionType) {
     const title = document.getElementById('admin-modal-title');
     const body = document.getElementById('admin-modal-body');
@@ -90,23 +92,41 @@ function closeAdminModal() {
 }
 
 function createEvent() {
-    const name = document.getElementById('new-event-name').value;
-    const duration = document.getElementById('new-event-duration').value;
-    
-    // Später machen wir hier ein fetch() auf api/admin.php
-    alert("Event '" + name + "' (" + duration + ") würde jetzt in der DB erstellt werden.");
+    alert("Noch nicht implementiert.");
     closeAdminModal();
 }
 
-function generateMatchplan() {
-    if(confirm("Möchtest du jetzt den Spielplan für das aktive Event generieren? (Zuvor müssen die Spieler auf Teams aufgeteilt sein!)")) {
-        alert("Generierung gestartet... (Backend fehlt noch)");
+// HIER IST DIE NEUE FUNKTION!
+async function generateMatchplan() {
+    if(confirm("Möchtest du jetzt den Spielplan für das aktive Event generieren? (Alte Spiele dieses Events werden gelöscht!)")) {
+        
+        // Wir sperren den Button kurz, damit man nicht 5x draufklickt
+        const formData = new FormData();
+        formData.append('action', 'generate_matchplan');
+
+        try {
+            const response = await fetch('api/admin.php', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            
+            if(result.success) {
+                alert(result.message);
+                // Laden wir die Seite neu, damit wir die neuen Matches direkt sehen können
+                window.location.href = "index.php?page=matches";
+            } else {
+                alert("Fehler: " + result.message);
+            }
+        } catch(e) {
+            alert("Server-Fehler. Bitte prüfen.");
+        }
     }
 }
 
 function endCurrentEvent() {
     if(confirm("Bist du sicher? Dies beendet das aktuelle Turnier unwiderruflich.")) {
-        alert("Event beendet.");
+        alert("Noch nicht implementiert.");
     }
 }
 </script>
