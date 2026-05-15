@@ -121,7 +121,30 @@ function closeAdminModal() {
     document.getElementById('admin-modal').style.display = 'none';
 }
 
-function createEvent() { alert("Noch nicht implementiert."); closeAdminModal(); }
+async function createEvent() {
+    const name = document.getElementById('new-event-name').value;
+    const duration = document.getElementById('new-event-duration').value;
+    
+    if(!name) { alert("Bitte Namen eingeben."); return; }
+
+    const formData = new FormData();
+    formData.append('action', 'create_event');
+    formData.append('name', name);
+    formData.append('duration', duration);
+
+    try {
+        const response = await fetch('api/admin.php', { method: 'POST', body: formData });
+        const result = await response.json();
+        
+        alert(result.message);
+        if(result.success) {
+            window.location.reload(); // Seite neu laden, um Event zu aktivieren
+        }
+    } catch(e) {
+        alert("Server-Fehler.");
+    }
+}
+
 async function generateMatchplan() { /* ... Dein alter Code bleibt ... */ }
 
 // NEUE FUNKTION: ERGEBNIS AN DAS BACKEND SENDEN

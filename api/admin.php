@@ -15,6 +15,56 @@ $db = $database->getConnection();
 $action = $_POST['action'] ?? '';
 
 // ---------------------------------------------------------
+// 0. NEUES EVENT ERSTELLEN
+// ---------------------------------------------------------
+if ($action === 'create_event') {
+    $name = $_POST['name'] ?? '';
+    $duration = $_POST['duration'] ?? 'standard';
+
+    if (empty($name)) {
+        echo json_encode(['success' => false, 'message' => 'Bitte einen Namen eingeben.']);
+        exit;
+    }
+
+    try {
+        $db->beginTransaction();
+
+        // 1. Alle alten Events auf "finished" setzen (Archivieren)
+        $db->exec("UPDATE events SET status = 'finished' WHERE status = 'active' OR status = 'upcoming'");
+
+        // 2. Neues Event erstellen
+        $stmt = $db->prepare("INSERT INTO events (name, event_date, duration_type, status, created_by) VALUES (?, CURDATE(), ?, 'active', ?)");
+        $stmt->execute([$name, $duration, $_SESSION['user_id']]);
+        $new_event_id = $db->lastInsertId();
+
+        // 3. Dummy-Teams für dieses Event anlegen (damit man sofort testen kann)
+        $teams = [
+            ['Team Alpha', '🛡️'],
+            ['Team Bravo', '🦁'],
+            ['Team Charlie', '🦅'],
+            ['Team Delta', '🐍']
+        ];
+        $insert_team = $db->prepare("INSERT INTO teams (event_id, name, icon, budget) VALUES (?, ?, ?, 150)");
+        foreach ($teams as $t) {
+            $insert_team->execute([$new_event_id, $t[0], $t[1]]);
+        }
+
+        // 4. Den Admin (Dich) testweise in Team Alpha stecken
+        $alpha_id = $db->query("SELECT id FROM teams WHERE event_id = $new_event_id ORDER BY id ASC LIMIT 1")->fetchColumn();
+        $db->prepare("INSERT INTO rosters (event_id, team_id, user_id, current_category, current_price) VALUES (?, ?, ?, 'c', 50)")
+           ->execute([$new_event_id, $alpha_id, $_SESSION['user_id']]);
+
+        $db->commit();
+        echo json_encode(['success' => true, 'message' => "Event '$name' ($duration) erstellt! 4 Teams wurden hinzugefügt."]);
+
+    } catch (Exception $e) {
+        $db->rollBack();
+        echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
+    }
+    exit; // Wichtig: Bricht hier ab
+}
+
+// ---------------------------------------------------------
 // 1. SPIELPLAN GENERIEREN (Runde 1)
 // ---------------------------------------------------------
 if ($action === 'generate_matchplan') {
@@ -91,7 +141,6 @@ if ($action === 'generate_matchplan') {
         // MODUS: ELIMINATION (K.O. System)
         // ==========================================
         elseif ($mode === 'kurz') {
-            
             if ($num_teams % 2 != 0) {
                 echo json_encode(['success' => false, 'message' => 'Elimination benötigt eine GERADE Anzahl an Teams!']);
                 exit;
@@ -99,18 +148,27 @@ if ($action === 'generate_matchplan') {
 
             shuffle($teams);
 
-            // Wir erstellen IMMER nur Runde 1. Egal ob 4 oder 6 Teams.
-            $db->prepare("INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 1)")->execute([$event_id]);
-            $md1_id = $db->lastInsertId();
+            if ($num_teams == 4) {
+                // RUNDE 1: Halbfinale
+                $db->prepare("INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 1)")->execute([$event_id]);
+                $md1_id = $db->lastInsertId();
 
-            $stmt = $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)");
-            
-            // Paarungen (immer 2 Teams gegeneinander)
-            for ($i = 0; $i < $num_teams; $i += 2) {
-                $stmt->execute([$md1_id, $teams[$i], $teams[$i+1]]);
+                $stmt = $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)");
+                $stmt->execute([$md1_id, $teams[0], $teams[1]]); // Spiel 1
+                $stmt->execute([$md1_id, $teams[2], $teams[3]]); // Spiel 2
+
+                // RUNDE 2: Finale & Spiel um Platz 3 (Platzhalter)
+                $db->prepare("INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 2)")->execute([$event_id]);
+                $md2_id = $db->lastInsertId();
+
+                // NULL erlaubt, wenn die Tabellenstruktur vorhin angepasst wurde!
+                $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, NULL, NULL)")->execute([$md2_id]); // Finale
+                $db->prepare("INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, NULL, NULL)")->execute([$md2_id]); // Platz 3
+
+                echo json_encode(['success' => true, 'message' => "Elimination-Baum für 4 Teams komplett aufgebaut! Halbfinals stehen, Finale ist TBD."]);
+            } else {
+                echo json_encode(['success' => false, 'message' => "Elimination ist aktuell nur für 4 Teams vollautomatisiert implementiert. Du hast $num_teams Teams."]);
             }
-
-            echo json_encode(['success' => true, 'message' => "K.O.-Baum gestartet! Runde 1 mit " . ($num_teams/2) . " Duellen generiert."]);
         }
 
     } catch (Exception $e) {
@@ -210,7 +268,7 @@ elseif ($action === 'calculate_next_round') {
 }
 
 // ---------------------------------------------------------
-// 3. SPIEL ERGEBNIS MANUELL EINTRAGEN
+// 3. SPIEL ERGEBNIS MANUELL EINTRAGEN & TURNIERBAUM UPDATE
 // ---------------------------------------------------------
 elseif ($action === 'submit_result') {
     $match_id = $_POST['match_id'] ?? 0;
@@ -223,13 +281,66 @@ elseif ($action === 'submit_result') {
     }
 
     try {
-        // Hier tragen wir NUR die Tore ein. K.O.-Logik passiert in Action 2!
+        $db->beginTransaction();
+
         $update_stmt = $db->prepare("UPDATE matches SET score1 = ?, score2 = ?, status = 'finished' WHERE id = ?");
         $update_stmt->execute([$score1, $score2, $match_id]);
 
-        echo json_encode(['success' => true, 'message' => 'Ergebnis gespeichert!']);
+        // K.O.-Automatik: Prüfen, ob wir im Elimination-Modus (Halbfinale) sind
+        $match_info = $db->prepare("
+            SELECT m.team1_id, m.team2_id, md.event_id, md.matchday_number, e.duration_type 
+            FROM matches m 
+            JOIN matchdays md ON m.matchday_id = md.id 
+            JOIN events e ON md.event_id = e.id 
+            WHERE m.id = ?
+        ");
+        $match_info->execute([$match_id]);
+        $info = $match_info->fetch();
+
+        if ($info['duration_type'] === 'kurz' && $info['matchday_number'] == 1) {
+            
+            $winner_id = ($score1 >= $score2) ? $info['team1_id'] : $info['team2_id']; // Bei Unentschieden gewinnt T1
+            $loser_id = ($score1 >= $score2) ? $info['team2_id'] : $info['team1_id'];
+
+            // Hole die beiden Platzhalter-Spiele von Spieltag 2 (Finale & Platz 3)
+            $md2_stmt = $db->prepare("
+                SELECT m.id 
+                FROM matches m 
+                JOIN matchdays md ON m.matchday_id = md.id 
+                WHERE md.event_id = ? AND md.matchday_number = 2 
+                ORDER BY m.id ASC
+            ");
+            $md2_stmt->execute([$info['event_id']]);
+            $finals = $md2_stmt->fetchAll();
+
+            if (count($finals) == 2) {
+                $finale_id = $finals[0]['id'];
+                $platz3_id = $finals[1]['id'];
+
+                // Hilfsfunktion: Füllt den nächsten freien Slot (team1 oder team2) in einem Spiel
+                $fill_slot = function($match_to_fill_id, $team_id_to_insert) use ($db) {
+                    $check = $db->prepare("SELECT team1_id, team2_id FROM matches WHERE id = ?");
+                    $check->execute([$match_to_fill_id]);
+                    $m = $check->fetch();
+
+                    if (is_null($m['team1_id'])) {
+                        $db->prepare("UPDATE matches SET team1_id = ? WHERE id = ?")->execute([$team_id_to_insert, $match_to_fill_id]);
+                    } elseif (is_null($m['team2_id'])) {
+                        $db->prepare("UPDATE matches SET team2_id = ? WHERE id = ?")->execute([$team_id_to_insert, $match_to_fill_id]);
+                    }
+                };
+
+                // Gewinner ins Finale (Slot 1), Verlierer in Platz 3 (Slot 2)
+                $fill_slot($finale_id, $winner_id);
+                $fill_slot($platz3_id, $loser_id);
+            }
+        }
+
+        $db->commit();
+        echo json_encode(['success' => true, 'message' => 'Ergebnis gespeichert! (Turnierbaum aktualisiert)']);
 
     } catch (Exception $e) {
+        $db->rollBack();
         echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
     }
 }
