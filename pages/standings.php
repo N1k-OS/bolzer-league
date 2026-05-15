@@ -22,7 +22,7 @@
             $current_event = $event_stmt->fetch();
 
             if (!$current_event) {
-                echo "<li class="list-item" style='padding: 20px; color: gray;'>Kein aktives Event gefunden.</li>";
+                 echo '<li class="list-item" style="padding: 20px; color: gray;">Kein aktives Event gefunden.</li>';
             } else {
                 $event_id = $current_event['id'];
 
