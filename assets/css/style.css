@@ -548,3 +548,89 @@ body {
     color: var(--primary-color);
     font-weight: bold;
 }
+
+/* =========================================
+   TAB: TRANSFERMARKT
+   ========================================= */
+
+.budget-badge {
+    background-color: var(--card-bg);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.tab-switcher {
+    display: flex;
+    margin-bottom: 20px;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: none;
+    color: var(--text-color);
+    font-weight: bold;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+.tab-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.notification-dot {
+    background-color: #ff4757;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+}
+
+/* --- Tauschanfragen Karte --- */
+.trade-request-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 15px;
+    box-shadow: var(--shadow-sm);
+}
+
+.trade-header {
+    background-color: var(--accordion-content-bg);
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.trade-body {
+    padding: 15px;
+    line-height: 1.6;
+}
+
+.trade-actions {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    border-top: 1px solid var(--list-divider);
+}
+
+.success-btn { background-color: #2ed573; }
+.danger-btn { background-color: #ff4757; }
+.text-success { color: #2ed573; }
+.text-danger { color: #ff4757; }

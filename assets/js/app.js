@@ -48,4 +48,31 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
+
+    // =========================================
+    // TRANSFERMARKT LOGIK
+    // =========================================
+    function switchMarketTab(tabId) {
+        // Ansichten umschalten
+        document.getElementById('market-view').style.display = (tabId === 'market') ? 'block' : 'none';
+        document.getElementById('requests-view').style.display = (tabId === 'requests') ? 'block' : 'none';
+        
+        // Button-Styles anpassen
+        const btns = document.querySelectorAll('.tab-switcher .tab-btn');
+        btns.forEach(btn => btn.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+    }
+
+    // Dummy-Funktionen für die Buttons
+    function openTradeModal(playerName, price) {
+        alert("Hier öffnet sich später das Formular, um " + playerName + " (Wert: " + price + ") ein Tauschangebot zu machen.");
+    }
+
+    function acceptTrade(id) {
+        alert("Anfrage " + id + " angenommen! (Backend-Verbindung fehlt noch)");
+    }
+
+    function declineTrade(id) {
+        alert("Anfrage " + id + " abgelehnt.");
+    }
 });
