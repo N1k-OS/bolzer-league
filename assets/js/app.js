@@ -160,24 +160,23 @@ document.addEventListener("DOMContentLoaded", () => {
     // EINSTELLUNGEN LOGIK
     // =========================================
     function saveSettings(event, formType) {
-        // Verhindert das Neuladen der Seite durch das Formular
         event.preventDefault();
         
-        // Kleines visuelles Feedback
         const btn = event.target.querySelector('button[type="submit"]');
         const originalText = btn.textContent;
         
+        // CSS-Klassen nutzen statt harter Farben
         btn.textContent = "Gespeichert ✔";
-        btn.style.backgroundColor = "#2ed573";
+        btn.classList.add('success-btn');
+        btn.classList.remove('danger-btn'); 
         
-        // Simuliert eine Verzögerung beim Speichern im Backend
         setTimeout(() => {
             btn.textContent = originalText;
-            // Beim Passwort-Button wieder die ursprüngliche Farbe herstellen
+            btn.classList.remove('success-btn');
+            
+            // Wenn es der Passwort-Button war, geben wir ihm seine Gefahr-Klasse zurück
             if(formType === 'password') {
-                btn.style.backgroundColor = "#ff4757";
-            } else {
-                btn.style.backgroundColor = ""; // Nimmt CSS Standard wieder an
+                btn.classList.add('danger-btn');
             }
         }, 2000);
     }

@@ -29,6 +29,15 @@
     --cat-b-text: #000000;
     --cat-c-bg: #cd7f32;
     --cat-c-text: #ffffff;
+
+    /* Status-Farben (Neu) */
+    --success-color: #2ed573;
+    --danger-color: #ff4757;
+    
+    /* Alert-Box (Light Mode) */
+    --warning-bg: rgba(255, 193, 7, 0.1);
+    --warning-border: rgba(255, 193, 7, 0.3);
+    --warning-text: #b38600;
 }
 
 [data-theme="dark"] {
@@ -49,10 +58,15 @@
     
     /* Schatten für Dark Mode anpassen oder ausblenden */
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2); 
+
+    /* Alert-Box (Dark Mode) */
+    --warning-bg: rgba(255, 193, 7, 0.05);
+    --warning-border: rgba(255, 193, 7, 0.1);
+    --warning-text: #ffc107;
 }
 
 /* Gezielter Reset statt * Operator */
-html, body, div, nav, main, h1, h2, h3, h4, h5, h6, p, a, button, ul, li {
+html, body, div, nav, main, h1, h2, h3, h4, h5, h6, p, a, button, ul, li, input, select, textarea {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -372,7 +386,7 @@ body {
     padding-bottom: 5px;
 }
 
-.match-card {
+.match-card, .trade-request-card, .accordion-item {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -382,6 +396,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    overflow: hidden;
 }
 
 .match-time {
@@ -630,11 +645,10 @@ body {
     border-top: 1px solid var(--list-divider);
 }
 
-.success-btn { background-color: #2ed573; }
-.danger-btn { background-color: #ff4757; }
-.text-success { color: #2ed573; }
-.text-danger { color: #ff4757; }
-
+.success-btn { background-color: var(--success-color) }
+.danger-btn { background-color: var(--danger-color) }
+.text-success { color: var(--success-color); }
+.text-danger { color: var(--danger-color); }
 /* =========================================
    MODALS (Popups)
    ========================================= */
@@ -734,8 +748,8 @@ body {
 }
 
 /* Du hattest success/danger Klassen, aber ohne Textfarbe etc. */
-.primary-btn.success-btn { background-color: #2ed573; color: #fff; }
-.primary-btn.danger-btn { background-color: #ff4757; color: #fff; }
+.primary-btn.success-btn { background-color: var(--success-color); color: #fff; }
+.primary-btn.danger-btn { background-color: var(--danger-color); color: #fff; }
 
 .icon-btn {
     background: none;
@@ -755,9 +769,9 @@ body {
 }
 
 .alert-box {
-    background-color: rgba(255, 193, 7, 0.1); /* Leichtes Gelb */
-    color: #b38600; /* Dunkles Gelb/Braun */
-    border: 1px solid rgba(255, 193, 7, 0.3);
+    background-color: var(--warning-bg);
+    color: var(--warning-text);
+    border: 1px solid var(--warning-border);
     padding: 15px;
     border-radius: 8px;
     text-align: center;

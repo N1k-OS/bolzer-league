@@ -8,9 +8,6 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Hier beginnt dein alter Code...
-$page = isset($_GET['page']) ? $_GET['page'] : 'events';
-// ...
 // 1. Welche Seite wurde angeklickt? (Standard ist 'events')
 $page = isset($_GET['page']) ? $_GET['page'] : 'events';
 
