@@ -344,4 +344,71 @@ elseif ($action === 'submit_result') {
         echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
     }
 }
+
+// ---------------------------------------------------------
+// 4. AKTUELLES EVENT BEENDEN
+// ---------------------------------------------------------
+elseif ($action === 'end_event') {
+    try {
+        $stmt = $db->prepare("UPDATE events SET status = 'finished' WHERE status = 'active'");
+        $stmt->execute();
+        if ($stmt->rowCount() === 0) {
+            echo json_encode(['success' => false, 'message' => 'Kein aktives Event gefunden.']);
+        } else {
+            echo json_encode(['success' => true, 'message' => 'Das aktuelle Event wurde beendet.']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
+    }
+}
+
+// ---------------------------------------------------------
+// 5. ADMIN: SPIELER IN ANDERES TEAM VERSCHIEBEN (OVERRIDE)
+// ---------------------------------------------------------
+elseif ($action === 'force_transfer') {
+    $user_id = isset($_POST['user_id']) ? (int) $_POST['user_id'] : 0;
+    $target_team_id = isset($_POST['target_team_id']) ? (int) $_POST['target_team_id'] : 0;
+
+    if ($user_id <= 0 || $target_team_id <= 0) {
+        echo json_encode(['success' => false, 'message' => 'Spieler und Zielteam sind erforderlich.']);
+        exit;
+    }
+
+    try {
+        $event_stmt = $db->query("SELECT id FROM events WHERE status = 'active' LIMIT 1");
+        $event = $event_stmt->fetch();
+        if (!$event) {
+            echo json_encode(['success' => false, 'message' => 'Kein aktives Event.']);
+            exit;
+        }
+        $event_id = (int) $event['id'];
+
+        $check_player = $db->prepare('SELECT team_id FROM rosters WHERE event_id = ? AND user_id = ?');
+        $check_player->execute([$event_id, $user_id]);
+        $row = $check_player->fetch();
+        if (!$row) {
+            echo json_encode(['success' => false, 'message' => 'Spieler ist in diesem Event nicht im Kader.']);
+            exit;
+        }
+        $from_team_id = (int) $row['team_id'];
+        if ($from_team_id === $target_team_id) {
+            echo json_encode(['success' => false, 'message' => 'Zielteam ist bereits das aktuelle Team.']);
+            exit;
+        }
+
+        $check_team = $db->prepare('SELECT id FROM teams WHERE id = ? AND event_id = ?');
+        $check_team->execute([$target_team_id, $event_id]);
+        if (!$check_team->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Zielteam gehört nicht zum aktiven Event.']);
+            exit;
+        }
+
+        $upd = $db->prepare('UPDATE rosters SET team_id = ? WHERE event_id = ? AND user_id = ?');
+        $upd->execute([$target_team_id, $event_id, $user_id]);
+
+        echo json_encode(['success' => true, 'message' => 'Spieler wurde in das gewählte Team verschoben.']);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
+    }
+}
 ?>

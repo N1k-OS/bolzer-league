@@ -187,23 +187,4 @@ document.addEventListener("DOMContentLoaded", () => {
             // Später: window.location.href = "login.php";
         }
     }
-
-    async function calculateNextRound() {
-        if(confirm("Möchtest du die nächste Runde berechnen? (Achtung: Alle aktuellen Spiele müssen beendet sein!)")) {
-            const formData = new FormData();
-            formData.append('action', 'calculate_next_round');
-
-            try {
-                const response = await fetch('api/admin.php', { method: 'POST', body: formData });
-                const result = await response.json();
-                
-                alert(result.message);
-                if(result.success) {
-                    window.location.href = "index.php?page=matches";
-                }
-            } catch(e) {
-                alert("Server-Fehler.");
-            }
-        }
-    }
 });

@@ -51,13 +51,21 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
 </div>
 
 <script>
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 async function openAdminModal(actionType) {
     const title = document.getElementById('admin-modal-title');
     const body = document.getElementById('admin-modal-body');
     const submitBtn = document.getElementById('admin-submit-btn');
-    
+    const modal = document.getElementById('admin-modal');
+
+    submitBtn.style.display = 'block';
+
     if (actionType === 'event') {
-        // ... (Dein bisheriger Code für Event erstellen bleibt gleich)
         title.textContent = "Neues Event erstellen";
         body.innerHTML = `
             <div class="form-group">
@@ -74,27 +82,28 @@ async function openAdminModal(actionType) {
             </div>
         `;
         submitBtn.onclick = createEvent;
-    } 
-    
-    // HIER IST DAS NEUE ERGEBNIS-FORMULAR
-    else if (actionType === 'result') {
+        modal.style.display = 'flex';
+        return;
+    }
+
+    if (actionType === 'result') {
         title.textContent = "Lade Spiele...";
         body.innerHTML = "<p>Bitte warten...</p>";
-        document.getElementById('admin-modal').style.display = 'flex';
+        modal.style.display = 'flex';
 
         try {
-            // Holt alle offenen Spiele aus der Datenbank
             const response = await fetch('api/get_matches.php');
             const matches = await response.json();
 
             title.textContent = "Ergebnis eintragen";
-            
+
             if (matches.length === 0) {
                 body.innerHTML = "<p class='text-danger'>Es gibt keine offenen Spiele, bei denen beide Teams feststehen.</p>";
                 submitBtn.style.display = 'none';
             } else {
-                let options = matches.map(m => `<option value="${m.id}">Tag ${m.matchday_number} | ${m.team1} vs ${m.team2}</option>`).join('');
-                
+                const options = matches.map(m =>
+                    `<option value="${m.id}">Tag ${m.matchday_number} | ${escapeHtml(m.team1)} vs ${escapeHtml(m.team2)}</option>`
+                ).join('');
                 body.innerHTML = `
                     <div class="form-group">
                         <label>Welches Spiel?</label>
@@ -109,12 +118,55 @@ async function openAdminModal(actionType) {
                 submitBtn.style.display = 'block';
                 submitBtn.onclick = submitResult;
             }
-        } catch(e) {
+        } catch (e) {
             body.innerHTML = "<p class='text-danger'>Fehler beim Laden der Spiele.</p>";
+            submitBtn.style.display = 'none';
+        }
+        return;
+    }
+
+    if (actionType === 'transfer') {
+        title.textContent = "Lade Kader...";
+        body.innerHTML = "<p>Bitte warten...</p>";
+        modal.style.display = 'flex';
+
+        try {
+            const response = await fetch('api/get_admin_roster_overview.php');
+            const data = await response.json();
+
+            title.textContent = "Transfer erzwingen (Override)";
+
+            if (!data.success || !data.players || data.players.length === 0) {
+                body.innerHTML = "<p class='text-danger'>" + escapeHtml(data.message || 'Keine Spieler im Kader oder kein aktives Event.') + "</p>";
+                submitBtn.style.display = 'none';
+                return;
+            }
+
+            const playerOpts = data.players.map(p =>
+                `<option value="${p.user_id}">${escapeHtml(p.name)} (${escapeHtml(p.team_name)})</option>`
+            ).join('');
+            const teamOpts = data.teams.map(t =>
+                `<option value="${t.id}">${escapeHtml(t.name)}</option>`
+            ).join('');
+
+            body.innerHTML = `
+                <p style="font-size: 0.85rem; color: gray; margin-bottom: 12px;">Verschiebt einen Spieler ohne Tauschlogik in ein anderes Team dieses Events.</p>
+                <div class="form-group">
+                    <label>Spieler</label>
+                    <select id="transfer-user-id" class="form-select">${playerOpts}</select>
+                </div>
+                <div class="form-group">
+                    <label>Zielteam</label>
+                    <select id="transfer-target-team-id" class="form-select">${teamOpts}</select>
+                </div>
+            `;
+            submitBtn.style.display = 'block';
+            submitBtn.onclick = submitForceTransfer;
+        } catch (e) {
+            body.innerHTML = "<p class='text-danger'>Fehler beim Laden der Kaderdaten.</p>";
+            submitBtn.style.display = 'none';
         }
     }
-    
-    document.getElementById('admin-modal').style.display = 'flex';
 }
 
 function closeAdminModal() {
@@ -124,8 +176,11 @@ function closeAdminModal() {
 async function createEvent() {
     const name = document.getElementById('new-event-name').value;
     const duration = document.getElementById('new-event-duration').value;
-    
-    if(!name) { alert("Bitte Namen eingeben."); return; }
+
+    if (!name) {
+        alert("Bitte Namen eingeben.");
+        return;
+    }
 
     const formData = new FormData();
     formData.append('action', 'create_event');
@@ -135,19 +190,76 @@ async function createEvent() {
     try {
         const response = await fetch('api/admin.php', { method: 'POST', body: formData });
         const result = await response.json();
-        
+
         alert(result.message);
-        if(result.success) {
-            window.location.reload(); // Seite neu laden, um Event zu aktivieren
+        if (result.success) {
+            window.location.reload();
         }
-    } catch(e) {
+    } catch (e) {
         alert("Server-Fehler.");
     }
 }
 
-async function generateMatchplan() { /* ... Dein alter Code bleibt ... */ }
+async function generateMatchplan() {
+    if (!confirm('Spielplan für das aktuelle Event erzeugen? Der bisherige Spielplan wird gelöscht.')) {
+        return;
+    }
+    const formData = new FormData();
+    formData.append('action', 'generate_matchplan');
 
-// NEUE FUNKTION: ERGEBNIS AN DAS BACKEND SENDEN
+    try {
+        const response = await fetch('api/admin.php', { method: 'POST', body: formData });
+        const result = await response.json();
+
+        alert(result.message);
+        if (result.success) {
+            window.location.href = "index.php?page=matches";
+        }
+    } catch (e) {
+        alert("Server-Fehler.");
+    }
+}
+
+async function calculateNextRound() {
+    if (!confirm("Nächste Runde berechnen? Alle Spiele der laufenden Runde müssen beendet sein (nur K.O.-Modus).")) {
+        return;
+    }
+    const formData = new FormData();
+    formData.append('action', 'calculate_next_round');
+
+    try {
+        const response = await fetch('api/admin.php', { method: 'POST', body: formData });
+        const result = await response.json();
+
+        alert(result.message);
+        if (result.success) {
+            window.location.href = "index.php?page=matches";
+        }
+    } catch (e) {
+        alert("Server-Fehler.");
+    }
+}
+
+async function endCurrentEvent() {
+    if (!confirm("Aktives Event wirklich beenden? Es gibt danach kein laufendes Event mehr, bis du ein neues anlegst.")) {
+        return;
+    }
+    const formData = new FormData();
+    formData.append('action', 'end_event');
+
+    try {
+        const response = await fetch('api/admin.php', { method: 'POST', body: formData });
+        const result = await response.json();
+
+        alert(result.message);
+        if (result.success) {
+            window.location.reload();
+        }
+    } catch (e) {
+        alert("Server-Fehler.");
+    }
+}
+
 async function submitResult() {
     const matchId = document.getElementById('result-match-id').value;
     const s1 = document.getElementById('result-score1').value || 0;
@@ -162,14 +274,44 @@ async function submitResult() {
     try {
         const response = await fetch('api/admin.php', { method: 'POST', body: formData });
         const result = await response.json();
-        
-        if(result.success) {
+
+        if (result.success) {
             alert(result.message);
             window.location.href = "index.php?page=matches";
         } else {
             alert("Fehler: " + result.message);
         }
-    } catch(e) {
+    } catch (e) {
+        alert("Server-Fehler.");
+    }
+}
+
+async function submitForceTransfer() {
+    const userId = document.getElementById('transfer-user-id').value;
+    const targetTeamId = document.getElementById('transfer-target-team-id').value;
+
+    if (!userId || !targetTeamId) {
+        alert('Bitte Spieler und Zielteam wählen.');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('action', 'force_transfer');
+    formData.append('user_id', userId);
+    formData.append('target_team_id', targetTeamId);
+
+    try {
+        const response = await fetch('api/admin.php', { method: 'POST', body: formData });
+        const result = await response.json();
+
+        if (result.success) {
+            alert(result.message);
+            closeAdminModal();
+            window.location.href = "index.php?page=transfer";
+        } else {
+            alert("Fehler: " + result.message);
+        }
+    } catch (e) {
         alert("Server-Fehler.");
     }
 }
