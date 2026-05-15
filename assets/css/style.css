@@ -453,3 +453,98 @@ body {
     font-size: 0.8rem;
     color: gray;
 }
+
+/* =========================================
+   TAB: TURNIERBAUM (Bracket)
+   ========================================= */
+
+.bracket-scroll-container {
+    width: 100%;
+    overflow-x: auto; /* Erlaubt horizontales Scrollen/Wischen */
+    padding-bottom: 20px; /* Platz für den unsichtbaren Scrollbalken */
+    /* Scrollbar verstecken */
+    scrollbar-width: none; 
+    -ms-overflow-style: none;
+}
+
+.bracket-scroll-container::-webkit-scrollbar {
+    display: none;
+}
+
+.bracket-wrapper {
+    display: flex; /* Legt die Runden nebeneinander */
+    align-items: center; /* Zentriert die Runden vertikal */
+    min-width: max-content; /* Verhindert, dass der Baum gequetscht wird */
+    padding: 10px;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    width: 180px; /* Feste Breite für jede Spalte/Runde */
+    margin-right: 30px;
+    position: relative;
+}
+
+.bracket-round:last-child {
+    margin-right: 0; /* Letzte Runde braucht keinen Abstand rechts */
+}
+
+.round-title {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: gray;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+.round-matches {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    flex-grow: 1;
+}
+
+/* --- Das einzelne Match im Baum --- */
+.bracket-match {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 30px; /* Abstand zwischen Spielen in der gleichen Runde */
+    position: relative;
+}
+
+.bracket-match:last-child {
+    margin-bottom: 0;
+}
+
+/* Visuelles Feedback für laufende/ausstehende Spiele */
+.bracket-match.upcoming {
+    border-left: 3px solid var(--primary-color);
+}
+
+.b-team {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.b-team:last-child {
+    border-bottom: none;
+}
+
+/* Der Gewinner wird fett markiert */
+.b-team.winner {
+    font-weight: bold;
+    background-color: var(--accordion-content-bg); /* Leicht hervorgehoben */
+}
+
+.b-score {
+    color: var(--primary-color);
+    font-weight: bold;
+}

@@ -1,0 +1,15 @@
+[
+    {
+        "round_name": "Halbfinale",
+        "matches": [
+            { "id": 1, "team1": "Team 1", "score1": 3, "team2": "Team 2", "score2": 1, "status": "finished" },
+            { "id": 2, "team1": "Team 3", "score1": null, "team2": "Team 4", "score2": null, "status": "upcoming" }
+        ]
+    },
+    {
+        "round_name": "Finale",
+        "matches": [
+            { "id": 3, "team1": "Team 1", "score1": null, "team2": "TBD", "score2": null, "status": "upcoming" }
+        ]
+    }
+]

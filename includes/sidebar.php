@@ -1,6 +1,8 @@
 <nav class="sidebar">
-    <div class="brand-logo">
-        ⚽<br><small>BL</small>
+        <div class="brand-logo">
+        <a href="index.php" style="color: white; text-decoration: none; display: block;">
+            ⚽<br><small>BL</small>
+        </a>
     </div>
     
     <div class="sidebar-icons">
