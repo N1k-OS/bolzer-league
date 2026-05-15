@@ -843,3 +843,9 @@ input:checked + .toggle-slider {
 input:checked + .toggle-slider:before {
     transform: translateX(24px);
 }
+
+.bracket-match.third-place-match {
+    margin-top: 20px;
+    border-style: dashed; /* Gestrichelter Rahmen, um es vom echten Finale zu unterscheiden */
+    opacity: 0.8;
+}
