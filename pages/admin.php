@@ -12,21 +12,24 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
 
 <div class="card-container settings-card">
     <h3 class="settings-title">🏆 Event-Steuerung</h3>
-    
+    <p style="font-size: 0.85rem; color: gray; margin-bottom: 12px;">
+        Spielplan und Turnierbaum aktualisieren sich bei Ergebniseintrag automatisch (später per Umfrage).
+        Die Knöpfe unten sind nur Fallback bei Datenproblemen.
+    </p>
     <div style="display: flex; flex-direction: column; gap: 15px;">
         <button class="primary-btn" onclick="openAdminModal('event')">Neues Event erstellen</button>
-        <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="generateMatchplan()">1. Spielplan generieren (Runde 1)</button>
-        <button class="primary-btn" style="background-color: var(--warning-text); color: var(--bg-color);" onclick="calculateNextRound()">2. Nächste Runde berechnen (Nur K.O.)</button>
-        <button class="primary-btn danger-btn" onclick="endCurrentEvent()">Aktuelles Event beenden</button>
+        <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="generateMatchplan()">Fallback: Spielplan neu aufbauen</button>
+        <button class="primary-btn" style="background-color: var(--warning-text); color: var(--bg-color);" onclick="calculateNextRound()">Fallback: K.O.-Bracket reparieren</button>
+        <button class="primary-btn danger-btn" onclick="endCurrentEvent()">Fallback: Event beenden</button>
     </div>
 </div>
 
 <div class="card-container settings-card">
     <h3 class="settings-title">⚔️ Spielverwaltung</h3>
-    <p style="font-size: 0.85rem; color: gray; margin-bottom: 15px;">Hier markierst du Spiele als beendet oder überschreibst Ergebnisse.</p>
+    <p style="font-size: 0.85rem; color: gray; margin-bottom: 15px;">Manuelle Korrekturen, bis Umfragen Tore/MVP automatisch liefern.</p>
     
     <div style="display: flex; flex-direction: column; gap: 15px;">
-        <button class="primary-btn success-btn" onclick="openAdminModal('result')">Ergebnis manuell eintragen</button>
+        <button class="primary-btn success-btn" onclick="openAdminModal('result')">Fallback: Ergebnis manuell eintragen</button>
         <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="openAdminModal('transfer')">Transfer erzwingen (Override)</button>
     </div>
 </div>
@@ -201,7 +204,7 @@ async function createEvent() {
 }
 
 async function generateMatchplan() {
-    if (!confirm('Spielplan für das aktuelle Event erzeugen? Der bisherige Spielplan wird gelöscht.')) {
+    if (!confirm('Spielplan komplett neu aufbauen? Alle bisherigen Spieltage und Ergebnisse dieses Events werden gelöscht.')) {
         return;
     }
     const formData = new FormData();
@@ -221,7 +224,7 @@ async function generateMatchplan() {
 }
 
 async function calculateNextRound() {
-    if (!confirm("Nächste Runde berechnen? Alle Spiele der laufenden Runde müssen beendet sein (nur K.O.-Modus).")) {
+    if (!confirm("K.O.-Bracket aus abgeschlossenen Halbfinalen neu synchronisieren? (Nur bei Datenproblemen nötig.)")) {
         return;
     }
     const formData = new FormData();

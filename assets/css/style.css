@@ -559,6 +559,12 @@ body {
     background-color: var(--accordion-content-bg); /* Leicht hervorgehoben */
 }
 
+.b-team.tba-slot .b-name,
+.m-team.tba-slot .m-name {
+    color: var(--text-muted, gray);
+    font-style: italic;
+}
+
 .b-score {
     color: var(--primary-color);
     font-weight: bold;
