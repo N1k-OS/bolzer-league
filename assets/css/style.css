@@ -65,12 +65,36 @@
     --warning-text: #ffc107;
 }
 
-/* Gezielter Reset statt * Operator */
-html, body, div, nav, main, h1, h2, h3, h4, h5, h6, p, a, button, ul, li, input, select, textarea {
+/* Reset & Box-Modell (global, damit Inputs nie aus Container ausbrechen) */
+*, *::before, *::after {
     box-sizing: border-box;
+}
+
+html, body, div, nav, main, h1, h2, h3, h4, h5, h6, p, a, button, ul, li, input, select, textarea {
     margin: 0;
     padding: 0;
 }
+
+/* --- Utilities (wiederverwendbar) --- */
+.u-hidden { display: none !important; }
+.u-flex-col { display: flex; flex-direction: column; gap: 15px; }
+.u-flex-row-center { display: flex; gap: 10px; align-items: center; }
+.u-text-muted { color: gray; font-size: 0.85rem; }
+.u-text-muted-sm { color: gray; font-size: 0.9rem; }
+.u-text-center { text-align: center; }
+.u-mb-12 { margin-bottom: 12px; }
+.u-mb-15 { margin-bottom: 15px; }
+.u-mt-10 { margin-top: 10px; }
+.u-p-10 { padding: 10px; }
+.u-p-20 { padding: 20px; }
+.u-input-score { width: 60px; text-align: center; }
+.page-empty { color: gray; text-align: center; padding: 20px; }
+.page-error { padding: 20px; }
+.accordion-content--open { max-height: 2000px; }
+.accordion-item--accent { border-left: 4px solid var(--primary-color); }
+.accordion-item--muted { border-left: 4px solid gray; }
+.btn--sidebar { background-color: var(--sidebar-active); }
+.btn--warning { background-color: var(--warning-text); color: var(--bg-color); }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -375,6 +399,10 @@ body {
     margin-bottom: 5px;
 }
 
+.matches-wrapper {
+    padding: 10px;
+}
+
 .matchday-label {
     font-size: 0.85rem;
     font-weight: bold;
@@ -521,6 +549,28 @@ body {
     flex-grow: 1;
 }
 
+/* Finale-Spalte: Finale und Platz-3-Spiel getrennt beschriftet */
+.bracket-finals-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 28px;
+}
+
+.bracket-subround {
+    display: flex;
+    flex-direction: column;
+}
+
+.bracket-subround--third {
+    padding-top: 20px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.round-title--sub {
+    margin-bottom: 12px;
+}
+
 /* --- Das einzelne Match im Baum --- */
 .bracket-match {
     background-color: var(--card-bg);
@@ -662,11 +712,15 @@ body {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
+    display: none;
     justify-content: center;
     align-items: center;
     z-index: 1000;
     padding: 20px;
+}
+
+.modal-overlay.is-open {
+    display: flex;
 }
 
 .modal-content {
@@ -804,6 +858,11 @@ body {
     border-bottom: 1px solid var(--border-color);
 }
 
+.form-input,
+.form-select {
+    max-width: 100%;
+}
+
 .form-input {
     width: 100%;
     padding: 12px;
@@ -865,7 +924,75 @@ input:checked + .toggle-slider:before {
 }
 
 .bracket-match.third-place-match {
+    border-style: dashed;
+    opacity: 0.85;
+}
+
+/* =========================================
+   LOGIN / AUTH
+   ========================================= */
+body.auth-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100dvh;
+    background-color: var(--sidebar-bg);
+    padding: 20px;
+    overflow: auto;
+}
+
+.auth-container {
+    background-color: var(--card-bg);
+    width: 100%;
+    max-width: 400px;
+    min-width: 0;
+    padding: 30px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.auth-logo {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.auth-title {
+    margin-bottom: 25px;
+    color: var(--text-color);
+}
+
+.auth-page .form-group {
+    text-align: left;
+    margin-bottom: 15px;
+}
+
+.auth-page .form-input,
+.auth-page .form-select {
+    width: 100%;
+    max-width: 100%;
+}
+
+.error-message {
+    color: var(--danger-color);
+    font-size: 0.85rem;
+    margin-bottom: 15px;
+    display: none;
+}
+
+.error-message.is-visible {
+    display: block;
+}
+
+.switch-mode {
     margin-top: 20px;
-    border-style: dashed; /* Gestrichelter Rahmen, um es vom echten Finale zu unterscheiden */
-    opacity: 0.8;
+    font-size: 0.9rem;
+    color: gray;
+}
+
+.switch-mode a {
+    color: var(--primary-color);
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
 }

@@ -12,31 +12,31 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
 
 <div class="card-container settings-card">
     <h3 class="settings-title">🏆 Event-Steuerung</h3>
-    <p style="font-size: 0.85rem; color: gray; margin-bottom: 12px;">
+    <p class="u-text-muted u-mb-12">
         Spielplan und Turnierbaum aktualisieren sich bei Ergebniseintrag automatisch (später per Umfrage).
         Die Knöpfe unten sind nur Fallback bei Datenproblemen.
     </p>
-    <div style="display: flex; flex-direction: column; gap: 15px;">
+    <div class="u-flex-col">
         <button class="primary-btn" onclick="openAdminModal('event')">Neues Event erstellen</button>
-        <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="generateMatchplan()">Fallback: Spielplan neu aufbauen</button>
-        <button class="primary-btn" style="background-color: var(--warning-text); color: var(--bg-color);" onclick="calculateNextRound()">Fallback: K.O.-Bracket reparieren</button>
+        <button class="primary-btn btn--sidebar" onclick="generateMatchplan()">Fallback: Spielplan neu aufbauen</button>
+        <button class="primary-btn btn--warning" onclick="calculateNextRound()">Fallback: K.O.-Bracket reparieren</button>
         <button class="primary-btn danger-btn" onclick="endCurrentEvent()">Fallback: Event beenden</button>
     </div>
 </div>
 
 <div class="card-container settings-card">
     <h3 class="settings-title">⚔️ Spielverwaltung</h3>
-    <p style="font-size: 0.85rem; color: gray; margin-bottom: 15px;">Manuelle Korrekturen, bis Umfragen Tore/MVP automatisch liefern.</p>
+    <p class="u-text-muted u-mb-15">Manuelle Korrekturen, bis Umfragen Tore/MVP automatisch liefern.</p>
     
-    <div style="display: flex; flex-direction: column; gap: 15px;">
+    <div class="u-flex-col">
         <button class="primary-btn success-btn" onclick="openAdminModal('result')">Fallback: Ergebnis manuell eintragen</button>
-        <button class="primary-btn" style="background-color: var(--sidebar-active);" onclick="openAdminModal('transfer')">Transfer erzwingen (Override)</button>
+        <button class="primary-btn btn--sidebar" onclick="openAdminModal('transfer')">Transfer erzwingen (Override)</button>
     </div>
 </div>
 
 
 <!-- DAS ADMIN-MODAL (Universell für Formulare) -->
-<div id="admin-modal" class="modal-overlay" style="display: none;">
+<div id="admin-modal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
             <h3 id="admin-modal-title">Aktion</h3>
@@ -66,7 +66,7 @@ async function openAdminModal(actionType) {
     const submitBtn = document.getElementById('admin-submit-btn');
     const modal = document.getElementById('admin-modal');
 
-    submitBtn.style.display = 'block';
+    submitBtn.classList.remove('u-hidden');
 
     if (actionType === 'event') {
         title.textContent = "Neues Event erstellen";
@@ -85,14 +85,14 @@ async function openAdminModal(actionType) {
             </div>
         `;
         submitBtn.onclick = createEvent;
-        modal.style.display = 'flex';
+        modal.classList.add('is-open');
         return;
     }
 
     if (actionType === 'result') {
         title.textContent = "Lade Spiele...";
         body.innerHTML = "<p>Bitte warten...</p>";
-        modal.style.display = 'flex';
+        modal.classList.add('is-open');
 
         try {
             const response = await fetch('api/get_matches.php');
@@ -102,7 +102,7 @@ async function openAdminModal(actionType) {
 
             if (matches.length === 0) {
                 body.innerHTML = "<p class='text-danger'>Es gibt keine offenen Spiele, bei denen beide Teams feststehen.</p>";
-                submitBtn.style.display = 'none';
+                submitBtn.classList.add('u-hidden');
             } else {
                 const options = matches.map(m =>
                     `<option value="${m.id}">Tag ${m.matchday_number} | ${escapeHtml(m.team1)} vs ${escapeHtml(m.team2)}</option>`
@@ -112,18 +112,18 @@ async function openAdminModal(actionType) {
                         <label>Welches Spiel?</label>
                         <select id="result-match-id" class="form-select">${options}</select>
                     </div>
-                    <div class="form-group" style="display: flex; gap: 10px; align-items: center;">
-                        <input type="number" id="result-score1" class="form-input" style="width: 60px; text-align: center;" placeholder="0" min="0">
+                    <div class="form-group u-flex-row-center">
+                        <input type="number" id="result-score1" class="form-input u-input-score" placeholder="0" min="0">
                         <span> : </span>
-                        <input type="number" id="result-score2" class="form-input" style="width: 60px; text-align: center;" placeholder="0" min="0">
+                        <input type="number" id="result-score2" class="form-input u-input-score" placeholder="0" min="0">
                     </div>
                 `;
-                submitBtn.style.display = 'block';
+                submitBtn.classList.remove('u-hidden');
                 submitBtn.onclick = submitResult;
             }
         } catch (e) {
             body.innerHTML = "<p class='text-danger'>Fehler beim Laden der Spiele.</p>";
-            submitBtn.style.display = 'none';
+            submitBtn.classList.add('u-hidden');
         }
         return;
     }
@@ -131,7 +131,7 @@ async function openAdminModal(actionType) {
     if (actionType === 'transfer') {
         title.textContent = "Lade Kader...";
         body.innerHTML = "<p>Bitte warten...</p>";
-        modal.style.display = 'flex';
+        modal.classList.add('is-open');
 
         try {
             const response = await fetch('api/get_admin_roster_overview.php');
@@ -141,7 +141,7 @@ async function openAdminModal(actionType) {
 
             if (!data.success || !data.players || data.players.length === 0) {
                 body.innerHTML = "<p class='text-danger'>" + escapeHtml(data.message || 'Keine Spieler im Kader oder kein aktives Event.') + "</p>";
-                submitBtn.style.display = 'none';
+                submitBtn.classList.add('u-hidden');
                 return;
             }
 
@@ -153,7 +153,7 @@ async function openAdminModal(actionType) {
             ).join('');
 
             body.innerHTML = `
-                <p style="font-size: 0.85rem; color: gray; margin-bottom: 12px;">Verschiebt einen Spieler ohne Tauschlogik in ein anderes Team dieses Events.</p>
+                <p class="u-text-muted u-mb-12">Verschiebt einen Spieler ohne Tauschlogik in ein anderes Team dieses Events.</p>
                 <div class="form-group">
                     <label>Spieler</label>
                     <select id="transfer-user-id" class="form-select">${playerOpts}</select>
@@ -163,17 +163,17 @@ async function openAdminModal(actionType) {
                     <select id="transfer-target-team-id" class="form-select">${teamOpts}</select>
                 </div>
             `;
-            submitBtn.style.display = 'block';
+            submitBtn.classList.remove('u-hidden');
             submitBtn.onclick = submitForceTransfer;
         } catch (e) {
             body.innerHTML = "<p class='text-danger'>Fehler beim Laden der Kaderdaten.</p>";
-            submitBtn.style.display = 'none';
+            submitBtn.classList.add('u-hidden');
         }
     }
 }
 
 function closeAdminModal() {
-    document.getElementById('admin-modal').style.display = 'none';
+    document.getElementById('admin-modal').classList.remove('is-open');
 }
 
 async function createEvent() {

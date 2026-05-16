@@ -42,7 +42,7 @@ try {
     $current_event = $event_stmt->fetch();
 
     if (!$current_event) {
-        echo "<p style='color: gray; text-align: center; padding: 20px;'>Kein aktives Event gefunden.</p>";
+        echo '<p class="page-empty">Kein aktives Event gefunden.</p>';
     } else {
         $event_id = $current_event['id'];
 
@@ -93,15 +93,15 @@ try {
         ?>
 
         <div class="accordion-container">
-            <div class="accordion-item" style="border-left: 4px solid var(--primary-color);">
+            <div class="accordion-item accordion-item--accent">
                 <button class="accordion-header">
                     <span class="team-name">⏳ Anstehende Spiele</span>
                     <span class="accordion-icon">−</span>
                 </button>
-                <div class="accordion-content" style="max-height: 2000px;">
-                    <div class="matches-wrapper" style="padding: 10px;">
+                <div class="accordion-content accordion-content--open">
+                    <div class="matches-wrapper u-p-10">
                         <?php if (empty($upcoming)): ?>
-                            <p style="padding: 10px; color: gray; font-size: 0.9rem;">Keine anstehenden Spiele.</p>
+                            <p class="u-p-10 u-text-muted-sm">Keine anstehenden Spiele.</p>
                         <?php else: ?>
                             <?php foreach ($upcoming as $day_num => $matches): ?>
                                 <div class="matchday-group">
@@ -118,15 +118,15 @@ try {
                 </div>
             </div>
 
-            <div class="accordion-item" style="border-left: 4px solid gray;">
+            <div class="accordion-item accordion-item--muted">
                 <button class="accordion-header">
                     <span class="team-name">✅ Vergangene Spiele</span>
                     <span class="accordion-icon">+</span>
                 </button>
                 <div class="accordion-content">
-                    <div class="matches-wrapper" style="padding: 10px;">
+                    <div class="matches-wrapper u-p-10">
                         <?php if (empty($finished)): ?>
-                            <p style="padding: 10px; color: gray; font-size: 0.9rem;">Noch keine Spiele beendet.</p>
+                            <p class="u-p-10 u-text-muted-sm">Noch keine Spiele beendet.</p>
                         <?php else: ?>
                             <?php foreach ($finished as $day_num => $matches): ?>
                                 <div class="matchday-group">
@@ -152,6 +152,6 @@ try {
         <?php
     }
 } catch (Exception $e) {
-    echo "<p class='text-danger' style='padding: 20px;'>Fehler beim Laden des Spielplans.</p>";
+    echo '<p class="text-danger page-error">Fehler beim Laden des Spielplans.</p>';
 }
 ?>

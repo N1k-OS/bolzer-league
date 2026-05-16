@@ -6,6 +6,31 @@
 <?php
 require_once 'includes/db.php';
 require_once 'includes/tournament.php';
+
+function render_bracket_match_card(array $match, bool $is_third_place = false): void
+{
+    $t1_label = display_team_label($match['team1_name']);
+    $t2_label = display_team_label($match['team2_name']);
+    $t1_tba = is_tba_slot($match['team1_id'] ?? null, $match['team1_name']);
+    $t2_tba = is_tba_slot($match['team2_id'] ?? null, $match['team2_name']);
+    $t1_winner = ($match['status'] === 'finished' && !$t1_tba && !$t2_tba && $match['score1'] >= $match['score2']);
+    $t2_winner = ($match['status'] === 'finished' && !$t1_tba && !$t2_tba && $match['score2'] > $match['score1']);
+    $status_class = htmlspecialchars($match['status']);
+    $extra_class = $is_third_place ? ' third-place-match' : '';
+    ?>
+    <div class="bracket-match <?php echo $status_class . $extra_class; ?>">
+        <div class="b-team <?php echo $t1_winner ? 'winner' : ''; ?> <?php echo $t1_tba ? 'tba-slot' : ''; ?>">
+            <span class="b-name"><?php echo htmlspecialchars($t1_label); ?></span>
+            <span class="b-score"><?php echo ($match['score1'] !== null) ? (int) $match['score1'] : '-'; ?></span>
+        </div>
+        <div class="b-team <?php echo $t2_winner ? 'winner' : ''; ?> <?php echo $t2_tba ? 'tba-slot' : ''; ?>">
+            <span class="b-name"><?php echo htmlspecialchars($t2_label); ?></span>
+            <span class="b-score"><?php echo ($match['score2'] !== null) ? (int) $match['score2'] : '-'; ?></span>
+        </div>
+    </div>
+    <?php
+}
+
 $database = new Database();
 $db = $database->getConnection();
 
@@ -14,11 +39,12 @@ try {
     $current_event = $event_stmt->fetch();
 
     if (!$current_event) {
-        echo "<p style='color: gray; text-align: center; padding: 20px;'>Kein aktives Event gefunden.</p>";
+        echo '<p class="page-empty">Kein aktives Event gefunden.</p>';
     } elseif ($current_event['duration_type'] !== 'kurz') {
-        echo "<div class='alert-box' style='margin: 20px; padding: 20px; text-align: center; color: gray; border: 1px solid var(--border-color); border-radius: 8px;'>";
-        echo "<strong>Ligamodus aktiv!</strong><br><br>Der Turnierbaum ist nur im Elimination-Modus verfügbar. Nutze die Tabelle.";
-        echo "</div>";
+        echo '<div class="alert-box">'
+            . '<strong>Ligamodus aktiv!</strong><br><br>'
+            . 'Der Turnierbaum ist nur im Elimination-Modus verfügbar. Nutze die Tabelle.'
+            . '</div>';
     } else {
         $event_id = $current_event['id'];
 
@@ -39,7 +65,7 @@ try {
         $all_matches = $stmt->fetchAll();
 
         if (empty($all_matches)) {
-            echo "<p style='color: gray; text-align: center; padding: 20px;'>Noch kein Spielplan angelegt.</p>";
+            echo '<p class="page-empty">Noch kein Spielplan angelegt.</p>';
         } else {
             $rounds = [];
             foreach ($all_matches as $match) {
@@ -51,50 +77,43 @@ try {
             }
 
             $total_rounds = count($rounds);
-            if ($total_rounds == 2) {
+            if ($total_rounds === 2) {
                 $rounds[1]['round_name'] = 'Halbfinale';
-                $rounds[2]['round_name'] = 'Finale / Platz 3';
             }
             ?>
 
             <div class="bracket-scroll-container">
                 <div class="bracket-wrapper">
-                    <?php foreach ($rounds as $day_num => $round): ?>
+                    <?php foreach ($rounds as $day_num => $round):
+                        $is_finals_column = ($total_rounds === 2 && $day_num === 2 && count($round['matches']) === 2);
+                        ?>
                         <div class="bracket-round">
-                            <div class="round-title"><?php echo htmlspecialchars($round['round_name']); ?></div>
-                            <div class="round-matches">
-                                <?php foreach ($round['matches'] as $index => $match):
-                                    $is_third_place = ($day_num == $total_rounds && count($round['matches']) == 2 && $index == 1);
-
-                                    $t1_label = display_team_label($match['team1_name']);
-                                    $t2_label = display_team_label($match['team2_name']);
-                                    $t1_tba = is_tba_slot($match['team1_id'] ?? null, $match['team1_name']);
-                                    $t2_tba = is_tba_slot($match['team2_id'] ?? null, $match['team2_name']);
-
-                                    $t1_winner = ($match['status'] === 'finished' && !$t1_tba && !$t2_tba && $match['score1'] >= $match['score2']);
-                                    $t2_winner = ($match['status'] === 'finished' && !$t1_tba && !$t2_tba && $match['score2'] > $match['score1']);
+                            <?php if ($is_finals_column):
+                                $finale_match = $round['matches'][0];
+                                $third_match = $round['matches'][1];
                                 ?>
-
-                                    <?php if ($is_third_place): ?>
-                                        <div style="text-align: center; font-size: 0.7rem; color: gray; margin: 10px 0 5px 0;">Spiel um Platz 3</div>
-                                    <?php endif; ?>
-
-                                    <div class="bracket-match <?php echo htmlspecialchars($match['status']); ?> <?php echo $is_third_place ? 'third-place-match' : ''; ?>">
-                                        <div class="b-team <?php echo $t1_winner ? 'winner' : ''; ?> <?php echo $t1_tba ? 'tba-slot' : ''; ?>">
-                                            <span class="b-name"><?php echo htmlspecialchars($t1_label); ?></span>
-                                            <span class="b-score"><?php echo ($match['score1'] !== null) ? (int) $match['score1'] : '-'; ?></span>
-                                        </div>
-                                        <div class="b-team <?php echo $t2_winner ? 'winner' : ''; ?> <?php echo $t2_tba ? 'tba-slot' : ''; ?>">
-                                            <span class="b-name"><?php echo htmlspecialchars($t2_label); ?></span>
-                                            <span class="b-score"><?php echo ($match['score2'] !== null) ? (int) $match['score2'] : '-'; ?></span>
-                                        </div>
+                                <div class="bracket-finals-column">
+                                    <div class="bracket-subround">
+                                        <div class="round-title round-title--sub">Finale</div>
+                                        <?php render_bracket_match_card($finale_match, false); ?>
                                     </div>
-
-                                    <?php if ($day_num < $total_rounds && !$is_third_place): ?>
-                                        <div class="bracket-connector"></div>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </div>
+                                    <div class="bracket-subround bracket-subround--third">
+                                        <div class="round-title round-title--sub">Spiel um Platz 3 und 4</div>
+                                        <?php render_bracket_match_card($third_match, true); ?>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="round-title"><?php echo htmlspecialchars($round['round_name']); ?></div>
+                                <div class="round-matches">
+                                    <?php foreach ($round['matches'] as $index => $match):
+                                        $is_last_in_round = ($index === count($round['matches']) - 1);
+                                        render_bracket_match_card($match, false);
+                                        if ($day_num < $total_rounds && !$is_last_in_round): ?>
+                                            <div class="bracket-connector"></div>
+                                        <?php endif;
+                                    endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
@@ -103,6 +122,6 @@ try {
         }
     }
 } catch (Exception $e) {
-    echo "<p class='text-danger' style='padding: 20px;'>Fehler.</p>";
+    echo '<p class="text-danger page-error">Fehler.</p>';
 }
 ?>
