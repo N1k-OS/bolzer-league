@@ -157,34 +157,80 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // =========================================
-    // EINSTELLUNGEN LOGIK
+    // EINSTELLUNGEN & LOGOUT LOGIK
     // =========================================
-    function saveSettings(event, formType) {
+    async function saveSettings(event, formType) {
         event.preventDefault();
         
         const btn = event.target.querySelector('button[type="submit"]');
         const originalText = btn.textContent;
+        btn.textContent = "Speichert...";
+        btn.disabled = true;
         
-        // CSS-Klassen nutzen statt harter Farben
-        btn.textContent = "Gespeichert ✔";
-        btn.classList.add('success-btn');
-        btn.classList.remove('danger-btn'); 
+        const formData = new FormData();
+        formData.append('form_type', formType);
+        
+        if (formType === 'profile') {
+            formData.append('alias', document.getElementById('alias-input').value);
+        } else if (formType === 'email') {
+            formData.append('email', document.getElementById('email-input').value);
+            formData.append('notifications', document.getElementById('reminder-toggle').checked);
+        } else if (formType === 'password') {
+            formData.append('pwd_old', document.getElementById('pwd-old').value);
+            formData.append('pwd_new', document.getElementById('pwd-new').value);
+        }
+
+        try {
+            const response = await fetch('api/settings_update.php', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                btn.textContent = "Gespeichert ✔";
+                btn.style.backgroundColor = "#2ed573";
+                btn.style.borderColor = "#2ed573";
+                if (formType === 'password') {
+                    document.getElementById('pwd-old').value = '';
+                    document.getElementById('pwd-new').value = '';
+                }
+            } else {
+                alert(result.message);
+                btn.textContent = "Fehler!";
+                btn.style.backgroundColor = "var(--danger-color)";
+            }
+        } catch(e) {
+            alert("Netzwerkfehler.");
+            btn.textContent = "Fehler!";
+        }
         
         setTimeout(() => {
             btn.textContent = originalText;
-            btn.classList.remove('success-btn');
-            
-            // Wenn es der Passwort-Button war, geben wir ihm seine Gefahr-Klasse zurück
+            btn.disabled = false;
             if(formType === 'password') {
-                btn.classList.add('danger-btn');
+                btn.style.backgroundColor = "var(--danger-color)";
+                btn.style.borderColor = "var(--danger-color)";
+            } else {
+                btn.style.backgroundColor = "";
+                btn.style.borderColor = "";
             }
         }, 2000);
     }
 
-    function logout() {
+    // LOGOUT FUNKTION
+    async function logout() {
         if(confirm("Möchtest du dich wirklich abmelden?")) {
-            alert("Logout erfolgreich. (Weiterleitung fehlt noch)");
-            // Später: window.location.href = "login.php";
+            // Wir rufen die auth.php mit der action 'logout' auf
+            const formData = new FormData();
+            formData.append('action', 'logout');
+            
+            try {
+                await fetch('api/auth.php', { method: 'POST', body: formData });
+                window.location.href = "login.php";
+            } catch(e) {
+                window.location.href = "login.php"; // Fallback
+            }
         }
     }
 });

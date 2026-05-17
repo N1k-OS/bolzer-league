@@ -88,4 +88,13 @@ elseif ($action === 'login') {
         echo json_encode(['success' => false, 'message' => 'Datenbankfehler beim Login']);
     }
 }
+
+// ---------------------------------------------------------
+// LOGOUT
+// ---------------------------------------------------------
+elseif ($action === 'logout') {
+    session_unset();
+    session_destroy();
+    echo json_encode(['success' => true]);
+}
 ?>
