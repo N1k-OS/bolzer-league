@@ -2,11 +2,18 @@
 // includes/db.php
 
 class Database {
-    // Ändere diese Daten passend zu deinem InfinityFree Account!
-    private $host = "sql311.infinityfree.com"; // Hast du oben im Screenshot verraten 😉
-    private $db_name = "if0_41922567_bolzer_league"; 
-    private $username = "if0_41922567"; // Meistens gleich dem Präfix der Datenbank
-    private $password = "IAyuWewJ21"; // Dein InfinityFree Passwort
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
+
+    public function __construct() {
+        $config = require __DIR__ . '/../config/db_credentials.php';
+        $this->host = $config['host'];
+        $this->db_name = $config['db_name'];
+        $this->username = $config['username'];
+        $this->password = $config['password'];
+    }
     
     public $conn;
 

@@ -79,7 +79,7 @@ async function openAdminModal(actionType) {
                 <label>Modus (Turnier-Art)</label>
                 <select id="new-event-duration" class="form-select">
                     <option value="kurz">Elimination (K.O. System für 4, 8, 16 Teams)</option>
-                    <option value="standard">Liga - Einfach (Jeder 1x gegen Jeden)</option>
+                    <option value="standard">Liga - Standard (Punkte & Elimination)</option>
                     <option value="lang">Liga - Erweitert (Hin- und Rückrunde)</option>
                 </select>
             </div>

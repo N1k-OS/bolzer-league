@@ -51,7 +51,9 @@ if ($action === 'create_event') {
         }
 
         // 4. Den Admin (Dich) testweise in Team Alpha stecken
-        $alpha_id = $db->query("SELECT id FROM teams WHERE event_id = $new_event_id ORDER BY id ASC LIMIT 1")->fetchColumn();
+        $stmt_alpha = $db->prepare("SELECT id FROM teams WHERE event_id = ? ORDER BY id ASC LIMIT 1");
+        $stmt_alpha->execute([$new_event_id]);
+        $alpha_id = $stmt_alpha->fetchColumn();
         $db->prepare("INSERT INTO rosters (event_id, team_id, user_id, current_category, current_price) VALUES (?, ?, ?, 'c', 50)")
            ->execute([$new_event_id, $alpha_id, $_SESSION['user_id']]);
 

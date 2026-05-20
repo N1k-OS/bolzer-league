@@ -1,5 +1,9 @@
 <?php
 // setup_dummy_data.php
+session_start();
+if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
+    die("Zugriff verweigert. Nur Admins können Testdaten generieren.");
+}
 require_once 'includes/db.php';
 
 try {
