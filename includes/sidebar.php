@@ -24,7 +24,7 @@
 
     <!-- Unterer Bereich für Dark Mode und Settings/Admin -->
     <div class="sidebar-bottom">
-        <button id="theme-toggle" class="nav-item icon-btn" title="Tag/Nacht Modus">🌗</button>
+        <button type="button" id="theme-toggle" class="nav-item icon-btn" title="Tag/Nacht Modus">🌗</button>
         
         <?php foreach ($tabs as $tab): 
             // Überspringen, wenn Admin-Tab, aber User kein Admin

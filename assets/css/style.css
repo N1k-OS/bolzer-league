@@ -138,12 +138,15 @@ body {
 .sidebar {
     width: 75px;
     min-width: 75px;
+    height: 100%;
+    max-height: 100dvh;
     background-color: var(--sidebar-bg);
     display: flex;
     flex-direction: column;
     padding: 15px 0;
     transition: background-color 0.4s ease;
     z-index: 100;
+    overflow: hidden;
 }
 
 /* Scrollbars überall verstecken */
@@ -170,7 +173,8 @@ body {
     display: flex;
     flex-direction: column;
     overflow-y: auto; /* Nur die Icons in der Mitte dürfen scrollen */
-    flex-grow: 1;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .sidebar-bottom {
