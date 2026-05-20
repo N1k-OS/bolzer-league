@@ -962,19 +962,20 @@ body.auth-page {
 }
 
 .auth-title {
-    margin-bottom: 25px;
+    margin-bottom: 35px;
     color: var(--text-color);
 }
 
 .auth-page .form-group {
     text-align: left;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 .auth-page .form-input,
 .auth-page .form-select {
     width: 100%;
     max-width: 100%;
+    padding: 14px 15px; /* Etwas breiteres Padding für Inputs */
 }
 
 .error-message {
@@ -989,9 +990,11 @@ body.auth-page {
 }
 
 .switch-mode {
-    margin-top: 20px;
-    font-size: 0.9rem;
+    margin-top: 30px;
+    font-size: 0.95rem;
     color: gray;
+    padding-top: 25px;
+    border-top: 1px solid var(--border-color);
 }
 
 .switch-mode a {
@@ -999,4 +1002,16 @@ body.auth-page {
     font-weight: bold;
     text-decoration: none;
     cursor: pointer;
+    display: inline-block;
+    margin-left: 8px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background-color: rgba(0, 123, 255, 0.1);
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+}
+
+.switch-mode a:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
 }
