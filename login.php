@@ -20,11 +20,11 @@ if (isset($_SESSION['user_id'])) {
         <div class="auth-logo">⚽</div>
         <h2 class="auth-title" id="form-title">Login</h2>
 
-        <div id="error-box" class="error-message">Fehlermeldung kommt hier hin.</div>
+        <div id="error-box" class="error-message"></div>
 
         <form id="auth-form" onsubmit="handleAuth(event)">
             <div class="form-group">
-                <label for="alias">Name (Alias)</label>
+                <label for="alias">Alias</label>
                 <input type="text" id="alias" class="form-input" required placeholder="z.B. Nikos">
             </div>
 
