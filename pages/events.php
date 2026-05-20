@@ -4,7 +4,7 @@
 </div>
 
 <?php
-require_once 'includes/db.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
 $database = new Database();
 $db = $database->getConnection();
 

@@ -1,6 +1,7 @@
 <?php
 // WICHTIG: Session starten muss ganz oben passieren!
 session_start();
+chdir(__DIR__);
 
 // Wenn der User nicht eingeloggt ist, zur Login-Seite weiterleiten
 if (!isset($_SESSION['user_id'])) {

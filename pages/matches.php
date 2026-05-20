@@ -4,8 +4,8 @@
 </div>
 
 <?php
-require_once 'includes/db.php';
-require_once 'includes/tournament.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../includes/tournament.php';
 $database = new Database();
 $db = $database->getConnection();
 

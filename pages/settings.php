@@ -4,26 +4,52 @@
 </div>
 
 <?php
-require_once 'includes/db.php';
+require_once __DIR__ . '/../includes/bootstrap.php';
+
 $database = new Database();
 $db = $database->getConnection();
 
 $user_id = $_SESSION['user_id'];
-$user_data = [];
+$user_data = [
+    'alias' => '',
+    'email' => '',
+    'icon' => '',
+    'email_notifications' => 1,
+];
+$profile_error = '';
 
 try {
-    $stmt = $db->prepare("SELECT alias, email, icon, email_notifications FROM users WHERE id = ?");
+    $stmt = $db->prepare('SELECT alias, email, icon, email_notifications FROM users WHERE id = ?');
     $stmt->execute([$user_id]);
-    $user_data = $stmt->fetch();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (is_array($row)) {
+        $user_data = array_merge($user_data, $row);
+    }
 } catch (Exception $e) {
-    echo "<div class='alert-box text-danger'>Fehler beim Laden der Profildaten.</div>";
+    try {
+        $stmt = $db->prepare('SELECT alias, email, icon FROM users WHERE id = ?');
+        $stmt->execute([$user_id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (is_array($row)) {
+            $user_data = array_merge($user_data, $row);
+        }
+    } catch (Exception $e2) {
+        $profile_error = 'Fehler beim Laden der Profildaten.';
+    }
 }
 
-$initial = !empty($user_data['icon']) ? htmlspecialchars($user_data['icon']) : mb_substr($user_data['alias'], 0, 1);
-$current_alias = htmlspecialchars($user_data['alias'] ?? '');
-$current_email = htmlspecialchars($user_data['email'] ?? '');
-$notifications_checked = ($user_data['email_notifications'] ?? 1) ? 'checked' : '';
+$alias_raw = (string) ($user_data['alias'] ?? '');
+$initial = !empty($user_data['icon'])
+    ? htmlspecialchars((string) $user_data['icon'])
+    : htmlspecialchars($alias_raw !== '' ? mb_substr($alias_raw, 0, 1) : '?');
+$current_alias = htmlspecialchars($alias_raw);
+$current_email = htmlspecialchars((string) ($user_data['email'] ?? ''));
+$notifications_checked = !empty($user_data['email_notifications']) ? 'checked' : '';
 ?>
+
+<?php if ($profile_error !== ''): ?>
+    <div class="alert-box text-danger"><?php echo htmlspecialchars($profile_error); ?></div>
+<?php endif; ?>
 
 <div class="settings-container">
 
