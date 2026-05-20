@@ -1,15 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const themeToggleBtn = document.getElementById("theme-toggle");
     const currentTheme = localStorage.getItem("theme");
     const metaThemeColor = document.getElementById("meta-theme-color");
 
     function applyTheme(theme) {
         if (theme === "dark") {
             document.documentElement.setAttribute("data-theme", "dark");
-            metaThemeColor.setAttribute("content", "#0a192f"); // Dunkelblau für Dark Mode
+            if (metaThemeColor) metaThemeColor.setAttribute("content", "#0a192f"); // Dunkelblau für Dark Mode
         } else {
             document.documentElement.removeAttribute("data-theme");
-            metaThemeColor.setAttribute("content", "#007bff"); // Helles Blau für Light Mode
+            if (metaThemeColor) metaThemeColor.setAttribute("content", "#007bff"); // Helles Blau für Light Mode
         }
     }
 
@@ -17,14 +16,15 @@ document.addEventListener("DOMContentLoaded", () => {
         applyTheme(currentTheme);
     }
 
-    if(themeToggleBtn) {
-        themeToggleBtn.addEventListener("click", () => {
+    document.addEventListener("click", function(event) {
+        const toggleBtn = event.target.closest("#theme-toggle");
+        if(toggleBtn) {
             let theme = document.documentElement.getAttribute("data-theme");
             let newTheme = (theme === "dark") ? "light" : "dark";
             localStorage.setItem("theme", newTheme);
             applyTheme(newTheme);
-        });
-    }
+        }
+    });
 
     // =========================================
     // AKKORDEON LOGIK (Event Delegation für dynamische Inhalte)
@@ -159,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // =========================================
     // EINSTELLUNGEN & LOGOUT LOGIK
     // =========================================
-    async function saveSettings(event, formType) {
+    window.saveSettings = async function(event, formType) {
         event.preventDefault();
         
         const btn = event.target.querySelector('button[type="submit"]');
@@ -216,10 +216,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 btn.style.borderColor = "";
             }
         }, 2000);
-    }
+    };
 
     // LOGOUT FUNKTION
-    async function logout() {
+    window.logout = async function() {
         if(confirm("Möchtest du dich wirklich abmelden?")) {
             // Wir rufen die auth.php mit der action 'logout' auf
             const formData = new FormData();
@@ -232,5 +232,5 @@ document.addEventListener("DOMContentLoaded", () => {
                 window.location.href = "login.php"; // Fallback
             }
         }
-    }
+    };
 });
