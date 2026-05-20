@@ -104,7 +104,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="margin:0; font-size:1.2rem;">Teams einteilen</h3>
-                <button class="icon-btn" onclick="closeDistributionModal()">✕</button>
+                <button class="icon-btn" onclick="closeDistributionModal()">❌</button>
             </div>
             <div class="modal-body">
                 <p><strong>Status:</strong> <?= $free_count ?> Spieler haben noch kein Team. Es gibt <?= $team_count ?> Teams.</p>
