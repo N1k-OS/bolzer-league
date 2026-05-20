@@ -81,7 +81,60 @@
     ?>
 </div>
 
-<!-- Admin-Button (Wird später nur eingeblendet, wenn $user_role == 'admin') -->
-<div class="admin-actions" style="margin-top: 20px; text-align: center;">
-    <button class="primary-btn" style="width: auto; padding: 10px 20px;">+ Team hinzufügen</button>
-</div>
+<!-- Admin-Button (Nur eingeblendet, wenn Admin) -->
+<?php if (isset($_SESSION['is_admin']) && $_SESSION['is_admin'] && isset($event_id)): ?>
+    <?php
+    $free_users_stmt = $db->prepare("
+        SELECT u.id, u.alias, u.base_category 
+        FROM users u 
+        LEFT JOIN rosters r ON u.id = r.user_id AND r.event_id = ?
+        WHERE r.id IS NULL
+    ");
+    $free_users_stmt->execute([$event_id]);
+    $free_users = $free_users_stmt->fetchAll();
+    $free_count = count($free_users);
+    $team_count = count($teams ?? []);
+    ?>
+    <div class="admin-actions" style="margin-top: 20px; text-align: center;">
+        <button class="primary-btn" style="width: auto; padding: 10px 20px;" onclick="openDistributionModal()">Teams verteilen (Admin)</button>
+    </div>
+
+    <!-- Modal für Team Verteilung -->
+    <div id="distribution-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size:1.2rem;">Teams einteilen</h3>
+                <button class="icon-btn" onclick="closeDistributionModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Status:</strong> <?= $free_count ?> Spieler haben noch kein Team. Es gibt <?= $team_count ?> Teams.</p>
+                
+                <?php if ($free_count > 0 && $team_count > 0): ?>
+                    <button class="primary-btn u-mb-15" onclick="randomlyDistributePlayers()">Zufällige Einteilung</button>
+                    
+                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+                    
+                    <h4 style="margin-bottom: 10px;">Manuelle Einteilung</h4>
+                    <div id="manual-distribution-form" style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                        <?php foreach ($free_users as $fu): ?>
+                            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <span style="font-size: 0.9rem;"><?= htmlspecialchars($fu['alias']) ?> (<?= strtoupper($fu['base_category']) ?>)</span>
+                                <select class="form-select manual-team-select" data-user-id="<?= $fu['id'] ?>" style="width: 140px; padding: 6px;">
+                                    <option value="0">-</option>
+                                    <?php foreach ($teams as $t): ?>
+                                        <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <button class="primary-btn success-btn u-mt-10" onclick="manualDistributePlayers()">Speichern</button>
+                <?php elseif ($team_count == 0): ?>
+                    <p class="text-danger">Es gibt keine Teams für dieses Event.</p>
+                <?php else: ?>
+                    <p class="text-success">Alle Spieler sind bereits in Teams eingeteilt!</p>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>

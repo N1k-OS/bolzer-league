@@ -83,6 +83,10 @@ async function openAdminModal(actionType) {
                     <option value="lang">Liga - Erweitert (Hin- und Rückrunde)</option>
                 </select>
             </div>
+            <div class="form-group">
+                <label>Anzahl der Teams</label>
+                <input type="number" id="new-event-teams" class="form-input" value="4" min="2" max="32">
+            </div>
         `;
         submitBtn.onclick = createEvent;
         modal.classList.add('is-open');
@@ -179,6 +183,7 @@ function closeAdminModal() {
 async function createEvent() {
     const name = document.getElementById('new-event-name').value;
     const duration = document.getElementById('new-event-duration').value;
+    const teamsCount = document.getElementById('new-event-teams').value;
 
     if (!name) {
         alert("Bitte Namen eingeben.");
@@ -189,6 +194,7 @@ async function createEvent() {
     formData.append('action', 'create_event');
     formData.append('name', name);
     formData.append('duration', duration);
+    formData.append('teams_count', teamsCount);
 
     try {
         const response = await fetch('api/admin.php', { method: 'POST', body: formData });

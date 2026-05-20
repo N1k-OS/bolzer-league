@@ -230,6 +230,70 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 2000);
     };
 
+    // =========================================
+    // TEAM DISTRIBUTION LOGIK (ADMIN)
+    // =========================================
+    window.openDistributionModal = function() {
+        const modal = document.getElementById('distribution-modal');
+        if (modal) modal.classList.add('is-open');
+    };
+
+    window.closeDistributionModal = function() {
+        const modal = document.getElementById('distribution-modal');
+        if (modal) modal.classList.remove('is-open');
+    };
+
+    window.randomlyDistributePlayers = async function() {
+        if (!confirm("Möchtest du alle Spieler ohne Team zufällig verteilen?")) return;
+        
+        const formData = new FormData();
+        formData.append('action', 'distribute_players_random');
+        
+        try {
+            const res = await fetch('api/admin.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) location.reload();
+        } catch (e) {
+            alert("Fehler beim Server-Aufruf.");
+        }
+    };
+
+    window.manualDistributePlayers = async function() {
+        const selects = document.querySelectorAll('.manual-team-select');
+        const assignments = [];
+        
+        selects.forEach(sel => {
+            const teamId = parseInt(sel.value);
+            if (teamId > 0) {
+                assignments.push({
+                    user_id: parseInt(sel.getAttribute('data-user-id')),
+                    team_id: teamId
+                });
+            }
+        });
+        
+        if (assignments.length === 0) {
+            alert("Bitte wähle mindestens ein Team für einen Spieler aus.");
+            return;
+        }
+        
+        if (!confirm(`${assignments.length} Spieler manuell zuweisen?`)) return;
+        
+        const formData = new FormData();
+        formData.append('action', 'distribute_players_manual');
+        formData.append('assignments', JSON.stringify(assignments));
+        
+        try {
+            const res = await fetch('api/admin.php', { method: 'POST', body: formData });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) location.reload();
+        } catch (e) {
+            alert("Fehler beim Server-Aufruf.");
+        }
+    };
+
     // LOGOUT FUNKTION
     window.logout = async function() {
         if(confirm("Möchtest du dich wirklich abmelden?")) {
