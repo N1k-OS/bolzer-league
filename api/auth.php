@@ -1,7 +1,7 @@
 <?php
 // api/auth.php
 session_start();
-require_once '../includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 // Wir sagen dem Browser, dass JSON zurückkommt
 header('Content-Type: application/json');
@@ -97,4 +97,3 @@ elseif ($action === 'logout') {
     session_destroy();
     echo json_encode(['success' => true]);
 }
-?>
