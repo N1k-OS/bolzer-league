@@ -31,6 +31,12 @@ try {
         }
 
         $new_icon = mb_substr($new_alias, 0, 1);
+        
+        // Ensure icon column exists
+        try {
+            $db->exec("ALTER TABLE users ADD COLUMN icon VARCHAR(255) NULL");
+        } catch (Exception $e) {}
+        
         $stmt = $db->prepare("UPDATE users SET alias = ?, icon = ? WHERE id = ?");
         $stmt->execute([$new_alias, $new_icon, $user_id]);
         
@@ -44,11 +50,19 @@ try {
         $email = trim($_POST['email']);
         $notifications = (isset($_POST['notifications']) && $_POST['notifications'] == 'true') ? 1 : 0;
         
+        // Ensure email and email_notifications columns exist
+        try {
+            $db->exec("ALTER TABLE users ADD COLUMN email VARCHAR(255) NULL");
+        } catch (Exception $e) {}
+        try {
+            $db->exec("ALTER TABLE users ADD COLUMN email_notifications TINYINT(1) NOT NULL DEFAULT 1");
+        } catch (Exception $e) {}
+        
         $stmt = $db->prepare("UPDATE users SET email = ?, email_notifications = ? WHERE id = ?");
         $stmt->execute([empty($email) ? NULL : $email, $notifications, $user_id]);
         
         echo json_encode(['success' => true, 'message' => 'Präferenzen gespeichert!']);
-    } 
+    }
     
     elseif ($formType === 'password') {
         $old_pwd = $_POST['pwd_old'];
