@@ -91,39 +91,100 @@ try {
             <div class="bracket-scroll-container">
                 <div class="bracket-wrapper">
                     <?php foreach ($rounds as $day_num => $round):
-                        $is_finals_column = ($day_num === $last_matchday && count($round['matches']) === 2);
+                        $is_finals = ($day_num === $last_matchday);
                         ?>
                         <div class="bracket-round">
-                            <?php if ($is_finals_column):
-                                $finale_match = $round['matches'][0];
-                                $third_match = $round['matches'][1];
-                                ?>
-                                <div class="bracket-finals-column">
-                                    <div class="bracket-subround">
-                                        <div class="round-title round-title--sub">Finale</div>
-                                        <?php render_bracket_match_card($finale_match, false); ?>
-                                    </div>
-                                    <div class="bracket-subround bracket-subround--third">
-                                        <div class="round-title round-title--sub">Spiel um Platz 3 und 4</div>
-                                        <?php render_bracket_match_card($third_match, true); ?>
-                                    </div>
-                                </div>
-                            <?php else: ?>
-                                <div class="round-title"><?php echo htmlspecialchars($round['round_name']); ?></div>
-                                <div class="round-matches">
-                                    <?php foreach ($round['matches'] as $index => $match):
-                                        $is_last_in_round = ($index === count($round['matches']) - 1);
-                                        render_bracket_match_card($match, false);
-                                        if ($day_num < $total_rounds && !$is_last_in_round): ?>
-                                            <div class="bracket-connector"></div>
-                                        <?php endif;
-                                    endforeach; ?>
-                                </div>
-                            <?php endif; ?>
+                            <div class="round-title"><?php echo htmlspecialchars($round['round_name']); ?></div>
+                            <div class="round-matches">
+                                <?php foreach ($round['matches'] as $index => $match):
+                                    render_bracket_match_card($match, false);
+                                endforeach; ?>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
             </div>
+
+            <!-- Dynamic Placements Table -->
+            <div class="placements-section">
+                <h3>Abschlussplatzierungen</h3>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Platz</th>
+                                <th>Team</th>
+                                <th>Punkte</th>
+                                <th>Tore</th>
+                                <th>Gegentore</th>
+                                <th>Differenz</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            // Calculate tournament points (win=3, draw=1, loss=0)
+                            // and aggregate goals for all matches in the current event.
+                            // We rank by: points DESC, goal_diff DESC, goals_for DESC
+                            $sql_stats = "
+                                SELECT 
+                                    t.id, t.name,
+                                    SUM(
+                                        CASE 
+                                            WHEN m.team1_id = t.id AND m.score1 > m.score2 THEN 3
+                                            WHEN m.team2_id = t.id AND m.score2 > m.score1 THEN 3
+                                            WHEN m.score1 = m.score2 AND m.status = 'finished' THEN 1
+                                            ELSE 0 
+                                        END
+                                    ) AS points,
+                                    SUM(
+                                        CASE 
+                                            WHEN m.team1_id = t.id THEN m.score1
+                                            WHEN m.team2_id = t.id THEN m.score2
+                                            ELSE 0 
+                                        END
+                                    ) AS goals_for,
+                                    SUM(
+                                        CASE 
+                                            WHEN m.team1_id = t.id THEN m.score2
+                                            WHEN m.team2_id = t.id THEN m.score1
+                                            ELSE 0 
+                                        END
+                                    ) AS goals_against
+                                FROM teams t
+                                JOIN matches m ON (m.team1_id = t.id OR m.team2_id = t.id)
+                                JOIN matchdays md ON m.matchday_id = md.id
+                                WHERE md.event_id = :event_id AND m.status = 'finished'
+                                GROUP BY t.id, t.name
+                                ORDER BY points DESC, (goals_for - goals_against) DESC, goals_for DESC
+                            ";
+                            $stmt_stats = $db->prepare($sql_stats);
+                            $stmt_stats->execute([':event_id' => $event_id]);
+                            $placements = $stmt_stats->fetchAll(PDO::FETCH_ASSOC);
+
+                            if (empty($placements)): ?>
+                                <tr>
+                                    <td colspan="6" class="text-center">Noch keine Spiele beendet.</td>
+                                </tr>
+                            <?php else: 
+                                $rank = 1;
+                                foreach ($placements as $team): 
+                                    $diff = $team['goals_for'] - $team['goals_against'];
+                            ?>
+                                <tr>
+                                    <td><strong><?= $rank++ ?>.</strong></td>
+                                    <td><?= htmlspecialchars($team['name']) ?></td>
+                                    <td><strong><?= $team['points'] ?></strong></td>
+                                    <td><?= $team['goals_for'] ?></td>
+                                    <td><?= $team['goals_against'] ?></td>
+                                    <td><?= $diff > 0 ? '+'.$diff : $diff ?></td>
+                                </tr>
+                            <?php endforeach; 
+                            endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <?php
         }
     }

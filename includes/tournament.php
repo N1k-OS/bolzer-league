@@ -135,8 +135,7 @@ function generate_ko_bracket(PDO $db, int $event_id, bool $shuffle = true): arra
         }
 
         if ($round === $total_rounds) {
-            $insert_match->execute([$matchday_id, null, null, 'upcoming']);
-            $insert_match->execute([$matchday_id, null, null, 'upcoming']);
+            $insert_match->execute([$matchday_id, null, null, 'upcoming']); // Finale
             continue;
         }
 
@@ -251,13 +250,12 @@ function advance_ko_after_result(PDO $db, int $match_id, int $score1, int $score
 
     if ($matchday === $total_rounds - 1) {
         $final_round = get_ko_match_ids_for_round($db, $event_id, $total_rounds);
-        if (count($final_round) !== 2) {
+        if (count($final_round) < 1) {
             return;
         }
 
         $slot = $match_index === 0 ? 1 : 2;
         fill_elimination_team_slot($db, $final_round[0], $winner_id, $slot);
-        fill_elimination_team_slot($db, $final_round[1], $loser_id, $slot);
 
         return;
     }
