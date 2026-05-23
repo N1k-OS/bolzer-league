@@ -93,23 +93,44 @@ try {
                 $rounds = $filtered_rounds;
             }
 
-            if (empty($rounds)) {
-                echo '<p class="page-empty">Die K.O.-Phase wurde noch nicht generiert.</p>';
-            } else {
-                $last_matchday = max(array_keys($rounds));
+            $last_matchday = !empty($rounds) ? max(array_keys($rounds)) : 0;
 
-                foreach ($rounds as $day_num => &$round) {
-                    $match_count = count($round['matches']);
-                    if ($day_num === $last_matchday && $match_count === 2) {
-                        continue;
-                    }
-                    $round['round_name'] = ko_round_display_name($match_count);
+            foreach ($rounds as $day_num => &$round) {
+                $match_count = count($round['matches']);
+                if ($day_num === $last_matchday && $match_count === 2) {
+                    continue;
                 }
-                unset($round);
+                $round['round_name'] = ko_round_display_name($match_count);
+            }
+            unset($round);
             ?>
 
             <div class="bracket-scroll-container">
                 <div class="bracket-wrapper">
+                    <?php if ($current_event['duration_type'] === 'standard'): 
+                        $groups = get_group_standings($db, $event_id);
+                        if (!empty($groups)):
+                    ?>
+                        <div class="bracket-round">
+                            <div class="round-title">Gruppenphase</div>
+                            <div class="round-matches">
+                                <?php foreach ($groups as $g_name => $g_teams): ?>
+                                    <div class="bracket-match" style="gap:0;">
+                                        <div style="font-weight:bold; font-size: 0.85rem; padding: 5px; color: var(--text-color); border-bottom: 1px solid var(--border-color); text-align: center; background: rgba(0,0,0,0.2);">
+                                            <?= htmlspecialchars($g_name) ?>
+                                        </div>
+                                        <?php foreach ($g_teams as $team): ?>
+                                            <div class="b-team" style="border-bottom: 1px solid var(--border-color);">
+                                                <span class="b-name"><?= htmlspecialchars($team['name']) ?></span>
+                                                <span class="b-score" style="font-weight:normal; font-size:0.8rem; background:transparent; padding-right:5px;"><?= htmlspecialchars($team['pts']) ?> Pkt</span>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; endif; ?>
+
                     <?php foreach ($rounds as $day_num => $round):
                         $is_finals = ($day_num === $last_matchday);
                         ?>
@@ -125,12 +146,9 @@ try {
                 </div>
             </div>
 
- 
-
             <?php
-            } // close else if empty(rounds)
-        } // close else if empty(all_matches)
-    } // close else
+        }
+    }
 
 } catch (Exception $e) {
     echo '<p class="text-danger page-error">Fehler.</p>';

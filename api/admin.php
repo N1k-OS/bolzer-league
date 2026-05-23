@@ -174,6 +174,12 @@ elseif ($action === 'submit_result') {
 
         advance_ko_after_result($db, (int) $match_id, (int) $score1, (int) $score2);
 
+        $event_id_stmt = $db->prepare("SELECT event_id FROM matchdays WHERE id = (SELECT matchday_id FROM matches WHERE id = ?)");
+        $event_id_stmt->execute([$match_id]);
+        $event_id_for_ko = (int) $event_id_stmt->fetchColumn();
+        
+        check_and_generate_wm_ko($db, $event_id_for_ko);
+
         $db->commit();
         echo json_encode(['success' => true, 'message' => 'Ergebnis gespeichert. Bracket und Begegnungen wurden aktualisiert.']);
 

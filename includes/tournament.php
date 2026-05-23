@@ -311,7 +311,8 @@ function advance_ko_after_result(PDO $db, int $match_id, int $score1, int $score
     $match_info->execute([$match_id]);
     $info = $match_info->fetch(PDO::FETCH_ASSOC);
 
-    if (!$info || $info['duration_type'] !== 'kurz') {
+    $duration_type = $info['duration_type'];
+    if ($duration_type !== 'kurz' && $duration_type !== 'standard') {
         return;
     }
 
@@ -320,16 +321,64 @@ function advance_ko_after_result(PDO $db, int $match_id, int $score1, int $score
     }
 
     $event_id = (int) $info['event_id'];
-    $team_count = count_event_teams($db, $event_id);
+    $matchday = (int) $info['matchday_number'];
+    
+    $is_ko = false;
+    $total_ko_rounds = 0;
+    
+    if ($duration_type === 'kurz') {
+        $team_count = count_event_teams($db, $event_id);
+        if (!ko_supported_team_count($team_count)) {
+            return;
+        }
+        $total_ko_rounds = ko_total_rounds($team_count);
+        $is_ko = true;
+    } else {
+        // Standard mode: determine if this matchday is part of the KO phase
+        $stmt_md = $db->prepare("
+            SELECT md.matchday_number, COUNT(m.id) as match_count 
+            FROM matchdays md 
+            JOIN matches m ON md.id = m.matchday_id 
+            WHERE md.event_id = ? 
+            GROUP BY md.id, md.matchday_number 
+            ORDER BY md.matchday_number DESC
+        ");
+        $stmt_md->execute([$event_id]);
+        $md_counts = $stmt_md->fetchAll(PDO::FETCH_ASSOC);
+        
+        $ko_matchdays = [];
+        $expected = 1;
+        foreach ($md_counts as $row) {
+            if ((int)$row['match_count'] === $expected) {
+                $ko_matchdays[] = (int)$row['matchday_number'];
+                $expected *= 2;
+            } elseif ($expected === 2 && (int)$row['match_count'] === 2) {
+                // Finale and Platz 3 (although removed, just in case)
+                $ko_matchdays[] = (int)$row['matchday_number'];
+            } else {
+                break;
+            }
+        }
+        
+        if (in_array($matchday, $ko_matchdays, true)) {
+            $is_ko = true;
+            $total_ko_rounds = count($ko_matchdays);
+        }
+    }
 
-    if (!ko_supported_team_count($team_count)) {
+    if (!$is_ko) {
         return;
     }
 
-    $total_rounds = ko_total_rounds($team_count);
-    $matchday = (int) $info['matchday_number'];
+    // Identify if it's the last round
+    $is_last_round = false;
+    if ($duration_type === 'kurz' && $matchday >= $total_ko_rounds) {
+        $is_last_round = true;
+    } elseif ($duration_type === 'standard' && $matchday === max($ko_matchdays)) {
+        $is_last_round = true;
+    }
 
-    if ($matchday >= $total_rounds) {
+    if ($is_last_round) {
         return;
     }
 
@@ -566,4 +615,62 @@ function generate_wm_ko_bracket(PDO $db, int $event_id): array
     }
     
     return ['success' => true, 'message' => 'K.O.-Phase erfolgreich generiert!'];
+}
+
+function check_and_generate_wm_ko(PDO $db, int $event_id): void
+{
+    $event_stmt = $db->prepare("SELECT duration_type FROM events WHERE id = ?");
+    $event_stmt->execute([$event_id]);
+    $event = $event_stmt->fetch();
+    
+    if (!$event || $event['duration_type'] !== 'standard') {
+        return;
+    }
+    
+    // Check if KO already exists (a match with NULL team in standard mode)
+    $ko_check = $db->prepare("SELECT COUNT(*) FROM matches m JOIN matchdays md ON m.matchday_id = md.id WHERE md.event_id = ? AND m.team1_id IS NULL");
+    $ko_check->execute([$event_id]);
+    if ($ko_check->fetchColumn() > 0) {
+        return;
+    }
+    
+    // Check if there are any unfinished matches currently (these would all be group matches since KO doesn't exist yet)
+    $unfinished = $db->prepare("SELECT COUNT(*) FROM matches m JOIN matchdays md ON m.matchday_id = md.id WHERE md.event_id = ? AND m.status != 'finished'");
+    $unfinished->execute([$event_id]);
+    if ($unfinished->fetchColumn() == 0) {
+        // All finished! Generate K.O.
+        generate_wm_ko_bracket($db, $event_id);
+    }
+}
+
+function get_group_standings(PDO $db, int $event_id): array
+{
+    $sql = "
+        SELECT 
+            t.id, 
+            t.name, 
+            t.icon,
+            t.group_name,
+            COALESCE(SUM(CASE WHEN m.team1_id = t.id AND m.score1 > m.score2 THEN 3 WHEN m.team2_id = t.id AND m.score2 > m.score1 THEN 3 WHEN m.score1 = m.score2 THEN 1 ELSE 0 END), 0) AS pts,
+            COALESCE(SUM(CASE WHEN m.team1_id = t.id THEN m.score1 - m.score2 ELSE m.score2 - m.score1 END), 0) AS diff,
+            COALESCE(SUM(CASE WHEN m.team1_id = t.id THEN m.score1 ELSE m.score2 END), 0) AS goals,
+            COUNT(m.id) AS matches_played
+        FROM teams t
+        LEFT JOIN matches m ON (m.team1_id = t.id OR m.team2_id = t.id) AND m.status = 'finished'
+        LEFT JOIN matchdays md ON m.matchday_id = md.id AND md.event_id = :eid
+        WHERE t.event_id = :eid2
+        GROUP BY t.id, t.name, t.group_name
+        ORDER BY t.group_name ASC, pts DESC, diff DESC, goals DESC
+    ";
+    
+    $stmt = $db->prepare($sql);
+    $stmt->execute([':eid' => $event_id, ':eid2' => $event_id]);
+    $standings = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $grouped = [];
+    foreach ($standings as $row) {
+        $g = $row['group_name'] ?: 'Tabelle';
+        $grouped[$g][] = $row;
+    }
+    return $grouped;
 }
