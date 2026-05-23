@@ -86,8 +86,8 @@ async function openAdminModal(actionType) {
             </div>
             <div class="form-group">
                 <label>Anzahl der Teams</label>
-                <input type="number" id="new-event-teams" class="form-input" value="4" min="4" max="16" step="4">
-                <small class="u-text-muted">Elimination: nur 4, 8 oder 16 Teams.</small>
+                <input type="number" id="new-event-teams" class="form-input" value="8" min="2" step="1">
+                <small class="u-text-muted">K.O.: 4, 8, 16. WM-Modus: Gerade Zahl. Liga: Beliebig.</small>
             </div>
         `;
         submitBtn.onclick = createEvent;
@@ -195,6 +195,10 @@ async function createEvent() {
     const teams = parseInt(teamsCount, 10);
     if (duration === 'kurz' && ![4, 8, 16].includes(teams)) {
         alert("Elimination (K.O.): Bitte genau 4, 8 oder 16 Teams wählen.");
+        return;
+    }
+    if (duration === 'standard' && teams % 2 !== 0) {
+        alert("Liga - Standard (WM-Modus): Bitte eine gerade Anzahl an Teams wählen.");
         return;
     }
 

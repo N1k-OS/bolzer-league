@@ -73,10 +73,11 @@ function generate_league_schedule(PDO $db, int $event_id, string $mode): array
         // Mode: standard (WM Format - Group Stage)
         shuffle($teams);
         
-        $num_groups = max(1, (int) floor($num_teams / 4));
-        if ($num_groups < 2 && $num_teams >= 4) {
-            $num_groups = 2;
+        $advancing = 2;
+        while ($advancing * 2 < $num_teams) {
+            $advancing *= 2;
         }
+        $num_groups = max(1, $advancing / 2);
         
         $groups = [];
         $group_labels = range('A', 'Z');
@@ -508,40 +509,42 @@ function generate_wm_ko_bracket(PDO $db, int $event_id): array
     }
     
     $num_groups = count($groups);
-    if ($num_groups !== 2 && $num_groups !== 4) {
-        return ['success' => false, 'message' => 'K.O.-Phase unterstützt aktuell nur 2 oder 4 Gruppen (8 oder 16 Teams).'];
+    if (!in_array($num_groups, [1, 2, 4, 8], true)) {
+        return ['success' => false, 'message' => 'K.O.-Phase unterstützt aktuell nur 1, 2, 4 oder 8 Gruppen (bis zu 32 Teams).'];
     }
     
     $md_num_stmt = $db->prepare('SELECT COALESCE(MAX(matchday_number), 0) FROM matchdays WHERE event_id = ?');
     $md_num_stmt->execute([$event_id]);
     $current_md_num = (int)$md_num_stmt->fetchColumn();
     
-    // Check if KO already generated
-    $ko_exists_stmt = $db->prepare("SELECT id FROM matchdays WHERE event_id = ? AND matchday_number > ?");
-    $ko_exists_stmt->execute([$event_id, $current_md_num]);
-    // Actually we can't easily check if KO exists just by matchday_number if we don't know the split.
-    // But let's assume if there's a match with a null team, KO exists.
     $ko_check = $db->prepare("SELECT COUNT(*) FROM matches m JOIN matchdays md ON m.matchday_id = md.id WHERE md.event_id = ? AND m.team1_id IS NULL");
     $ko_check->execute([$event_id]);
     if ($ko_check->fetchColumn() > 0) {
         return ['success' => false, 'message' => 'K.O.-Phase wurde bereits generiert.'];
     }
     
-    $total_ko_rounds = ($num_groups === 2) ? 2 : 3;
+    $total_ko_rounds = (int) log($num_groups * 2, 2);
     
     $insert_md = $db->prepare('INSERT INTO matchdays (event_id, matchday_number) VALUES (?, ?)');
     $insert_match = $db->prepare('INSERT INTO matches (matchday_id, team1_id, team2_id, status) VALUES (?, ?, ?, ?)');
     
     $matchups = [];
     $group_keys = array_keys($advancing_teams);
-    if ($num_groups === 2) {
-        $matchups[] = [$advancing_teams[$group_keys[0]][0], $advancing_teams[$group_keys[1]][1]];
-        $matchups[] = [$advancing_teams[$group_keys[1]][0], $advancing_teams[$group_keys[0]][1]];
+    
+    if ($num_groups === 1) {
+        $matchups[] = [$advancing_teams[$group_keys[0]][0], $advancing_teams[$group_keys[0]][1]];
     } else {
-        $matchups[] = [$advancing_teams[$group_keys[0]][0], $advancing_teams[$group_keys[1]][1]];
-        $matchups[] = [$advancing_teams[$group_keys[2]][0], $advancing_teams[$group_keys[3]][1]];
-        $matchups[] = [$advancing_teams[$group_keys[1]][0], $advancing_teams[$group_keys[0]][1]];
-        $matchups[] = [$advancing_teams[$group_keys[3]][0], $advancing_teams[$group_keys[2]][1]];
+        $half = $num_groups / 2;
+        for ($i = 0; $i < $half; $i++) {
+            $g1 = $i * 2;
+            $g2 = $g1 + 1;
+            $matchups[] = [$advancing_teams[$group_keys[$g1]][0], $advancing_teams[$group_keys[$g2]][1]];
+        }
+        for ($i = 0; $i < $half; $i++) {
+            $g1 = $i * 2 + 1;
+            $g2 = $i * 2;
+            $matchups[] = [$advancing_teams[$group_keys[$g1]][0], $advancing_teams[$group_keys[$g2]][1]];
+        }
     }
     
     for ($r = 1; $r <= $total_ko_rounds; $r++) {
