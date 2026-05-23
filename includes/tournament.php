@@ -82,6 +82,7 @@ function ko_round_display_name(int $matches_in_round): string
         8 => 'Achtelfinale',
         4 => 'Viertelfinale',
         2 => 'Halbfinale',
+        1 => 'Finale',
         default => 'Runde',
     };
 }
@@ -244,8 +245,43 @@ function advance_ko_after_result(PDO $db, int $match_id, int $score1, int $score
         return;
     }
 
-    $winner_id = ($score1 >= $score2) ? (int) $info['team1_id'] : (int) $info['team2_id'];
-    $loser_id = ($score1 >= $score2) ? (int) $info['team2_id'] : (int) $info['team1_id'];
+    if ($score1 > $score2) {
+        $winner_id = (int) $info['team1_id'];
+        $loser_id = (int) $info['team2_id'];
+    } elseif ($score2 > $score1) {
+        $winner_id = (int) $info['team2_id'];
+        $loser_id = (int) $info['team1_id'];
+    } else {
+        $t1 = (int) $info['team1_id'];
+        $t2 = (int) $info['team2_id'];
+        
+        $stmt_stats = $db->prepare("
+            SELECT 
+                SUM(CASE WHEN m.team1_id = :id AND m.score1 > m.score2 THEN 3
+                         WHEN m.team2_id = :id AND m.score2 > m.score1 THEN 3
+                         WHEN m.score1 = m.score2 THEN 1 ELSE 0 END) as pts,
+                SUM(CASE WHEN m.team1_id = :id THEN m.score1 - m.score2 ELSE m.score2 - m.score1 END) as diff
+            FROM matches m
+            JOIN matchdays md ON m.matchday_id = md.id
+            WHERE md.event_id = :event_id AND (m.team1_id = :id OR m.team2_id = :id) AND m.status = 'finished'
+        ");
+        
+        $stmt_stats->execute([':id' => $t1, ':event_id' => $event_id]);
+        $s1 = $stmt_stats->fetch(PDO::FETCH_ASSOC);
+        
+        $stmt_stats->execute([':id' => $t2, ':event_id' => $event_id]);
+        $s2 = $stmt_stats->fetch(PDO::FETCH_ASSOC);
+        
+        $w1 = false;
+        if ((int)$s1['pts'] > (int)$s2['pts']) {
+            $w1 = true;
+        } elseif ((int)$s1['pts'] === (int)$s2['pts'] && (int)$s1['diff'] >= (int)$s2['diff']) {
+            $w1 = true;
+        }
+        
+        $winner_id = $w1 ? $t1 : $t2;
+        $loser_id = $w1 ? $t2 : $t1;
+    }
     $match_index = get_ko_match_index_in_round($db, $match_id);
 
     if ($matchday === $total_rounds - 1) {
