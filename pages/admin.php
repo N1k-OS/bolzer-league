@@ -19,6 +19,7 @@ if (!isset($_SESSION['is_admin']) || !$_SESSION['is_admin']) {
     <div class="u-flex-col">
         <button class="primary-btn" onclick="openAdminModal('event')">Neues Event erstellen</button>
         <button class="primary-btn btn--sidebar" onclick="generateMatchplan()">Fallback: Spielplan neu aufbauen</button>
+        <button class="primary-btn btn--sidebar" onclick="generateWMKO()">Gruppenphase beenden & K.O.-Baum erstellen (WM-Modus)</button>
         <button class="primary-btn btn--warning" onclick="calculateNextRound()">Fallback: K.O.-Bracket reparieren</button>
         <button class="primary-btn danger-btn" onclick="endCurrentEvent()">Fallback: Event beenden</button>
     </div>
@@ -230,6 +231,26 @@ async function generateMatchplan() {
         alert(result.message);
         if (result.success) {
             window.location.href = "index.php?page=matches";
+        }
+    } catch (e) {
+        alert("Server-Fehler.");
+    }
+}
+
+async function generateWMKO() {
+    if (!confirm('Gruppenphase beenden und K.O.-Runde für die besten Teams generieren?')) {
+        return;
+    }
+    const formData = new FormData();
+    formData.append('action', 'generate_wm_ko');
+
+    try {
+        const response = await fetch('api/admin.php', { method: 'POST', body: formData });
+        const result = await response.json();
+
+        alert(result.message);
+        if (result.success) {
+            window.location.href = "index.php?page=bracket";
         }
     } catch (e) {
         alert("Server-Fehler.");

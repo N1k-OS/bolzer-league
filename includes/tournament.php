@@ -371,17 +371,6 @@ function advance_ko_after_result(PDO $db, int $match_id, int $score1, int $score
     }
     $match_index = get_ko_match_index_in_round($db, $match_id);
 
-    if ($matchday === $total_rounds - 1) {
-        $final_round = get_ko_match_ids_for_round($db, $event_id, $total_rounds);
-        if (count($final_round) < 1) {
-            return;
-        }
-
-        $slot = $match_index === 0 ? 1 : 2;
-        fill_elimination_team_slot($db, $final_round[0], $winner_id, $slot);
-
-        return;
-    }
 
     $next_round = get_ko_match_ids_for_round($db, $event_id, $matchday + 1);
     $next_match_index = (int) floor($match_index / 2);
@@ -477,4 +466,101 @@ function display_team_label(?string $name): string
 function is_tba_slot($team_id, ?string $name): bool
 {
     return $team_id === null || $team_id === '' || $name === null || $name === '';
+}
+
+function generate_wm_ko_bracket(PDO $db, int $event_id): array
+{
+    $sql = "
+        SELECT 
+            t.id, t.name, t.group_name,
+            COALESCE(SUM(CASE WHEN m.team1_id = t.id AND m.score1 > m.score2 THEN 3 WHEN m.team2_id = t.id AND m.score2 > m.score1 THEN 3 WHEN m.score1 = m.score2 THEN 1 ELSE 0 END), 0) AS pts,
+            COALESCE(SUM(CASE WHEN m.team1_id = t.id THEN m.score1 - m.score2 ELSE m.score2 - m.score1 END), 0) AS diff,
+            COALESCE(SUM(CASE WHEN m.team1_id = t.id THEN m.score1 ELSE m.score2 END), 0) AS goals
+        FROM teams t
+        LEFT JOIN matches m ON (m.team1_id = t.id OR m.team2_id = t.id) AND m.status = 'finished'
+        LEFT JOIN matchdays md ON m.matchday_id = md.id AND md.event_id = :eid
+        WHERE t.event_id = :eid2
+        GROUP BY t.id, t.name, t.group_name
+        ORDER BY t.group_name ASC, pts DESC, diff DESC, goals DESC
+    ";
+    $stmt = $db->prepare($sql);
+    $stmt->execute([':eid' => $event_id, ':eid2' => $event_id]);
+    $teams = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $groups = [];
+    foreach ($teams as $t) {
+        $g = $t['group_name'];
+        if ($g) {
+            $groups[$g][] = $t['id'];
+        }
+    }
+    
+    if (empty($groups)) {
+        return ['success' => false, 'message' => 'Keine Gruppen gefunden. WM-Modus erfordert Gruppen.'];
+    }
+    
+    $advancing_teams = [];
+    foreach ($groups as $g_name => $g_teams) {
+        $advancing_teams[$g_name] = [
+            $g_teams[0] ?? null,
+            $g_teams[1] ?? null
+        ];
+    }
+    
+    $num_groups = count($groups);
+    if ($num_groups !== 2 && $num_groups !== 4) {
+        return ['success' => false, 'message' => 'K.O.-Phase unterstützt aktuell nur 2 oder 4 Gruppen (8 oder 16 Teams).'];
+    }
+    
+    $md_num_stmt = $db->prepare('SELECT COALESCE(MAX(matchday_number), 0) FROM matchdays WHERE event_id = ?');
+    $md_num_stmt->execute([$event_id]);
+    $current_md_num = (int)$md_num_stmt->fetchColumn();
+    
+    // Check if KO already generated
+    $ko_exists_stmt = $db->prepare("SELECT id FROM matchdays WHERE event_id = ? AND matchday_number > ?");
+    $ko_exists_stmt->execute([$event_id, $current_md_num]);
+    // Actually we can't easily check if KO exists just by matchday_number if we don't know the split.
+    // But let's assume if there's a match with a null team, KO exists.
+    $ko_check = $db->prepare("SELECT COUNT(*) FROM matches m JOIN matchdays md ON m.matchday_id = md.id WHERE md.event_id = ? AND m.team1_id IS NULL");
+    $ko_check->execute([$event_id]);
+    if ($ko_check->fetchColumn() > 0) {
+        return ['success' => false, 'message' => 'K.O.-Phase wurde bereits generiert.'];
+    }
+    
+    $total_ko_rounds = ($num_groups === 2) ? 2 : 3;
+    
+    $insert_md = $db->prepare('INSERT INTO matchdays (event_id, matchday_number) VALUES (?, ?)');
+    $insert_match = $db->prepare('INSERT INTO matches (matchday_id, team1_id, team2_id, status) VALUES (?, ?, ?, ?)');
+    
+    $matchups = [];
+    $group_keys = array_keys($advancing_teams);
+    if ($num_groups === 2) {
+        $matchups[] = [$advancing_teams[$group_keys[0]][0], $advancing_teams[$group_keys[1]][1]];
+        $matchups[] = [$advancing_teams[$group_keys[1]][0], $advancing_teams[$group_keys[0]][1]];
+    } else {
+        $matchups[] = [$advancing_teams[$group_keys[0]][0], $advancing_teams[$group_keys[1]][1]];
+        $matchups[] = [$advancing_teams[$group_keys[2]][0], $advancing_teams[$group_keys[3]][1]];
+        $matchups[] = [$advancing_teams[$group_keys[1]][0], $advancing_teams[$group_keys[0]][1]];
+        $matchups[] = [$advancing_teams[$group_keys[3]][0], $advancing_teams[$group_keys[2]][1]];
+    }
+    
+    for ($r = 1; $r <= $total_ko_rounds; $r++) {
+        $insert_md->execute([$event_id, $current_md_num + $r]);
+        $md_id = $db->lastInsertId();
+        
+        if ($r === 1) {
+            foreach ($matchups as $m) {
+                $insert_match->execute([$md_id, $m[0], $m[1], 'upcoming']);
+            }
+        } elseif ($r === $total_ko_rounds) {
+            $insert_match->execute([$md_id, null, null, 'upcoming']);
+        } else {
+            $matches_in_round = count($matchups) / pow(2, $r - 1);
+            for ($m = 0; $m < $matches_in_round; $m++) {
+                $insert_match->execute([$md_id, null, null, 'upcoming']);
+            }
+        }
+    }
+    
+    return ['success' => true, 'message' => 'K.O.-Phase erfolgreich generiert!'];
 }

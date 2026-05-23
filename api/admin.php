@@ -111,6 +111,27 @@ if ($action === 'generate_matchplan') {
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Datenbank-Fehler: ' . $e->getMessage()]);
     }
+    }
+    exit;
+}
+
+// ---------------------------------------------------------
+// 1b. WM-KO GENERIEREN (Nur Standard-Liga)
+// ---------------------------------------------------------
+elseif ($action === 'generate_wm_ko') {
+    try {
+        $event_stmt = $db->query("SELECT id, duration_type FROM events WHERE status = 'active' LIMIT 1");
+        $event = $event_stmt->fetch();
+
+        if (!$event || $event['duration_type'] !== 'standard') {
+            echo json_encode(['success' => false, 'message' => 'Nur im Standard-Modus (WM-Format) verfügbar.']);
+            exit;
+        }
+
+        echo json_encode(generate_wm_ko_bracket($db, (int) $event['id']));
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
+    }
     exit;
 }
 

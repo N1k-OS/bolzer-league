@@ -40,10 +40,10 @@ try {
 
     if (!$current_event) {
         echo '<p class="page-empty">Kein aktives Event gefunden.</p>';
-    } elseif ($current_event['duration_type'] !== 'kurz') {
+    } elseif ($current_event['duration_type'] !== 'kurz' && $current_event['duration_type'] !== 'standard') {
         echo '<div class="alert-box">'
             . '<strong>Ligamodus aktiv!</strong><br><br>'
-            . 'Der Turnierbaum ist nur im Elimination-Modus verfügbar. Nutze die Tabelle.'
+            . 'Der Turnierbaum ist nur im Elimination- oder WM-Modus verfügbar. Nutze die Tabelle.'
             . '</div>';
     } else {
         $event_id = $current_event['id'];
@@ -76,16 +76,36 @@ try {
                 $rounds[$day]['matches'][] = $match;
             }
 
-            $last_matchday = max(array_keys($rounds));
-
-            foreach ($rounds as $day_num => &$round) {
-                $match_count = count($round['matches']);
-                if ($day_num === $last_matchday && $match_count === 2) {
-                    continue;
+            if ($current_event['duration_type'] === 'standard') {
+                $filtered_rounds = [];
+                $days = array_keys($rounds);
+                rsort($days);
+                $expected_matches = 1;
+                foreach ($days as $day) {
+                    if (count($rounds[$day]['matches']) === $expected_matches) {
+                        $filtered_rounds[$day] = $rounds[$day];
+                        $expected_matches *= 2;
+                    } else {
+                        break;
+                    }
                 }
-                $round['round_name'] = ko_round_display_name($match_count);
+                ksort($filtered_rounds);
+                $rounds = $filtered_rounds;
             }
-            unset($round);
+
+            if (empty($rounds)) {
+                echo '<p class="page-empty">Die K.O.-Phase wurde noch nicht generiert.</p>';
+            } else {
+                $last_matchday = max(array_keys($rounds));
+
+                foreach ($rounds as $day_num => &$round) {
+                    $match_count = count($round['matches']);
+                    if ($day_num === $last_matchday && $match_count === 2) {
+                        continue;
+                    }
+                    $round['round_name'] = ko_round_display_name($match_count);
+                }
+                unset($round);
             ?>
 
             <div class="bracket-scroll-container">
@@ -108,8 +128,10 @@ try {
  
 
             <?php
-        }
-    }
+            } // close else if empty(rounds)
+        } // close else if empty(all_matches)
+    } // close else
+
 } catch (Exception $e) {
     echo '<p class="text-danger page-error">Fehler.</p>';
 }
