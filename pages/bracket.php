@@ -76,16 +76,22 @@ try {
                 $rounds[$day]['matches'][] = $match;
             }
 
-            $total_rounds = count($rounds);
-            if ($total_rounds === 2) {
-                $rounds[1]['round_name'] = 'Halbfinale';
+            $last_matchday = max(array_keys($rounds));
+
+            foreach ($rounds as $day_num => &$round) {
+                $match_count = count($round['matches']);
+                if ($day_num === $last_matchday && $match_count === 2) {
+                    continue;
+                }
+                $round['round_name'] = ko_round_display_name($match_count);
             }
+            unset($round);
             ?>
 
             <div class="bracket-scroll-container">
                 <div class="bracket-wrapper">
                     <?php foreach ($rounds as $day_num => $round):
-                        $is_finals_column = ($total_rounds === 2 && $day_num === 2 && count($round['matches']) === 2);
+                        $is_finals_column = ($day_num === $last_matchday && count($round['matches']) === 2);
                         ?>
                         <div class="bracket-round">
                             <?php if ($is_finals_column):

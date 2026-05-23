@@ -85,7 +85,8 @@ async function openAdminModal(actionType) {
             </div>
             <div class="form-group">
                 <label>Anzahl der Teams</label>
-                <input type="number" id="new-event-teams" class="form-input" value="4" min="2" max="32">
+                <input type="number" id="new-event-teams" class="form-input" value="4" min="4" max="16" step="4">
+                <small class="u-text-muted">Elimination: nur 4, 8 oder 16 Teams.</small>
             </div>
         `;
         submitBtn.onclick = createEvent;
@@ -190,6 +191,12 @@ async function createEvent() {
         return;
     }
 
+    const teams = parseInt(teamsCount, 10);
+    if (duration === 'kurz' && ![4, 8, 16].includes(teams)) {
+        alert("Elimination (K.O.): Bitte genau 4, 8 oder 16 Teams wählen.");
+        return;
+    }
+
     const formData = new FormData();
     formData.append('action', 'create_event');
     formData.append('name', name);
@@ -230,7 +237,7 @@ async function generateMatchplan() {
 }
 
 async function calculateNextRound() {
-    if (!confirm("K.O.-Bracket aus abgeschlossenen Halbfinalen neu synchronisieren? (Nur bei Datenproblemen nötig.)")) {
+    if (!confirm("K.O.-Bracket aus allen abgeschlossenen Spielen neu synchronisieren? (Nur bei Datenproblemen nötig.)")) {
         return;
     }
     const formData = new FormData();

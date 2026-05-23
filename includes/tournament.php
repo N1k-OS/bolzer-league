@@ -65,61 +65,150 @@ function generate_league_schedule(PDO $db, int $event_id, string $mode): array
     return ['success' => true, 'message' => "Liga-Spielplan ($mode) angelegt."];
 }
 
-function generate_ko_bracket_4(PDO $db, int $event_id, bool $shuffle = true): array
+/** K.O.-Elimination: 4, 8 oder 16 Teams (Zweierpotenzen). */
+function ko_supported_team_count(int $num_teams): bool
+{
+    return in_array($num_teams, [4, 8, 16], true);
+}
+
+function ko_total_rounds(int $num_teams): int
+{
+    return (int) log($num_teams, 2);
+}
+
+function ko_round_display_name(int $matches_in_round): string
+{
+    return match ($matches_in_round) {
+        8 => 'Achtelfinale',
+        4 => 'Viertelfinale',
+        2 => 'Halbfinale',
+        default => 'Runde',
+    };
+}
+
+function count_event_teams(PDO $db, int $event_id): int
+{
+    $stmt = $db->prepare('SELECT COUNT(*) FROM teams WHERE event_id = ?');
+    $stmt->execute([$event_id]);
+
+    return (int) $stmt->fetchColumn();
+}
+
+/**
+ * Kompletten K.O.-Baum anlegen: erste Runde mit Teams, Rest mit TBA-Plätzen.
+ */
+function generate_ko_bracket(PDO $db, int $event_id, bool $shuffle = true): array
 {
     $teams_stmt = $db->prepare('SELECT id FROM teams WHERE event_id = ? ORDER BY id');
     $teams_stmt->execute([$event_id]);
     $teams = $teams_stmt->fetchAll(PDO::FETCH_COLUMN);
     $num_teams = count($teams);
 
-    if ($num_teams !== 4) {
+    if (!ko_supported_team_count($num_teams)) {
         return [
             'success' => false,
-            'message' => "Elimination (4 Teams) benötigt genau 4 Teams, aktuell: $num_teams.",
+            'message' => "Elimination (K.O.) benötigt genau 4, 8 oder 16 Teams, aktuell: $num_teams.",
         ];
     }
 
+    $total_rounds = ko_total_rounds($num_teams);
     $db->prepare('DELETE FROM matchdays WHERE event_id = ?')->execute([$event_id]);
 
     if ($shuffle) {
         shuffle($teams);
     }
 
-    $db->prepare('INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 1)')->execute([$event_id]);
-    $md1_id = (int) $db->lastInsertId();
+    $insert_md = $db->prepare('INSERT INTO matchdays (event_id, matchday_number) VALUES (?, ?)');
+    $insert_match = $db->prepare(
+        'INSERT INTO matches (matchday_id, team1_id, team2_id, status) VALUES (?, ?, ?, ?)'
+    );
 
-    $stmt = $db->prepare('INSERT INTO matches (matchday_id, team1_id, team2_id, status) VALUES (?, ?, ?, ?)');
-    $stmt->execute([$md1_id, $teams[0], $teams[1], 'upcoming']);
-    $stmt->execute([$md1_id, $teams[2], $teams[3], 'upcoming']);
+    for ($round = 1; $round <= $total_rounds; $round++) {
+        $insert_md->execute([$event_id, $round]);
+        $matchday_id = (int) $db->lastInsertId();
 
-    $db->prepare('INSERT INTO matchdays (event_id, matchday_number) VALUES (?, 2)')->execute([$event_id]);
-    $md2_id = (int) $db->lastInsertId();
+        if ($round === 1) {
+            for ($i = 0; $i < $num_teams; $i += 2) {
+                $insert_match->execute([$matchday_id, $teams[$i], $teams[$i + 1], 'upcoming']);
+            }
+            continue;
+        }
 
-    $placeholder = $db->prepare('INSERT INTO matches (matchday_id, team1_id, team2_id, status) VALUES (?, NULL, NULL, ?)');
-    $placeholder->execute([$md2_id, 'upcoming']);
-    $placeholder->execute([$md2_id, 'upcoming']);
+        if ($round === $total_rounds) {
+            $insert_match->execute([$matchday_id, null, null, 'upcoming']);
+            $insert_match->execute([$matchday_id, null, null, 'upcoming']);
+            continue;
+        }
+
+        $matches_in_round = (int) ($num_teams / pow(2, $round));
+        for ($m = 0; $m < $matches_in_round; $m++) {
+            $insert_match->execute([$matchday_id, null, null, 'upcoming']);
+        }
+    }
+
+    $first_round = ko_round_display_name((int) ($num_teams / 2));
 
     return [
         'success' => true,
-        'message' => 'K.O.-Baum angelegt (Halbfinale + Finale/Platz 3 mit TBA-Plätzen).',
+        'message' => "K.O.-Baum für $num_teams Teams angelegt ($first_round bis Finale/Platz 3).",
     ];
 }
 
-function fill_elimination_slot(PDO $db, int $match_id, int $team_id): void
+/** @deprecated Alias – nutze generate_ko_bracket() */
+function generate_ko_bracket_4(PDO $db, int $event_id, bool $shuffle = true): array
 {
-    $check = $db->prepare('SELECT team1_id, team2_id FROM matches WHERE id = ?');
-    $check->execute([$match_id]);
-    $m = $check->fetch(PDO::FETCH_ASSOC);
+    return generate_ko_bracket($db, $event_id, $shuffle);
+}
 
-    if (!$m) {
+function fill_elimination_team_slot(PDO $db, int $match_id, int $team_id, int $slot): void
+{
+    if ($slot !== 1 && $slot !== 2) {
         return;
     }
 
-    if ($m['team1_id'] === null) {
-        $db->prepare('UPDATE matches SET team1_id = ? WHERE id = ?')->execute([$team_id, $match_id]);
-    } elseif ($m['team2_id'] === null) {
-        $db->prepare('UPDATE matches SET team2_id = ? WHERE id = ?')->execute([$team_id, $match_id]);
-    }
+    $column = $slot === 1 ? 'team1_id' : 'team2_id';
+    $db->prepare("UPDATE matches SET $column = ? WHERE id = ?")->execute([$team_id, $match_id]);
+}
+
+function get_ko_match_ids_for_round(PDO $db, int $event_id, int $matchday_number): array
+{
+    $stmt = $db->prepare("
+        SELECT m.id
+        FROM matches m
+        JOIN matchdays md ON m.matchday_id = md.id
+        WHERE md.event_id = ? AND md.matchday_number = ?
+        ORDER BY m.id ASC
+    ");
+    $stmt->execute([$event_id, $matchday_number]);
+
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+function get_ko_match_index_in_round(PDO $db, int $match_id): int
+{
+    $stmt = $db->prepare("
+        SELECT m.id
+        FROM matches m
+        JOIN matchdays md ON m.matchday_id = md.id
+        WHERE md.event_id = (
+            SELECT md2.event_id FROM matches m2
+            JOIN matchdays md2 ON m2.matchday_id = md2.id
+            WHERE m2.id = ?
+        )
+        AND md.matchday_number = (
+            SELECT md3.matchday_number FROM matches m3
+            JOIN matchdays md3 ON m3.matchday_id = md3.id
+            WHERE m3.id = ?
+        )
+        ORDER BY m.id ASC
+    ");
+    $stmt->execute([$match_id, $match_id]);
+    $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $ids = array_map('intval', $ids);
+    $index = array_search($match_id, $ids, true);
+
+    return $index === false ? 0 : (int) $index;
 }
 
 function advance_ko_after_result(PDO $db, int $match_id, int $score1, int $score2): void
@@ -142,77 +231,121 @@ function advance_ko_after_result(PDO $db, int $match_id, int $score1, int $score
         return;
     }
 
-    if ((int) $info['matchday_number'] !== 1) {
+    $event_id = (int) $info['event_id'];
+    $team_count = count_event_teams($db, $event_id);
+
+    if (!ko_supported_team_count($team_count)) {
+        return;
+    }
+
+    $total_rounds = ko_total_rounds($team_count);
+    $matchday = (int) $info['matchday_number'];
+
+    if ($matchday >= $total_rounds) {
         return;
     }
 
     $winner_id = ($score1 >= $score2) ? (int) $info['team1_id'] : (int) $info['team2_id'];
     $loser_id = ($score1 >= $score2) ? (int) $info['team2_id'] : (int) $info['team1_id'];
+    $match_index = get_ko_match_index_in_round($db, $match_id);
 
-    $md2_stmt = $db->prepare("
-        SELECT m.id
-        FROM matches m
-        JOIN matchdays md ON m.matchday_id = md.id
-        WHERE md.event_id = ? AND md.matchday_number = 2
-        ORDER BY m.id ASC
-    ");
-    $md2_stmt->execute([$info['event_id']]);
-    $finals = $md2_stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($matchday === $total_rounds - 1) {
+        $final_round = get_ko_match_ids_for_round($db, $event_id, $total_rounds);
+        if (count($final_round) !== 2) {
+            return;
+        }
 
-    if (count($finals) !== 2) {
+        $slot = $match_index === 0 ? 1 : 2;
+        fill_elimination_team_slot($db, $final_round[0], $winner_id, $slot);
+        fill_elimination_team_slot($db, $final_round[1], $loser_id, $slot);
+
         return;
     }
 
-    fill_elimination_slot($db, (int) $finals[0]['id'], $winner_id);
-    fill_elimination_slot($db, (int) $finals[1]['id'], $loser_id);
+    $next_round = get_ko_match_ids_for_round($db, $event_id, $matchday + 1);
+    $next_match_index = (int) floor($match_index / 2);
+    $next_slot = ($match_index % 2 === 0) ? 1 : 2;
+
+    if (!isset($next_round[$next_match_index])) {
+        return;
+    }
+
+    fill_elimination_team_slot($db, $next_round[$next_match_index], $winner_id, $next_slot);
+}
+
+function clear_ko_bracket_progress(PDO $db, int $event_id): void
+{
+    $db->prepare("
+        UPDATE matches m
+        JOIN matchdays md ON m.matchday_id = md.id
+        SET m.team1_id = NULL, m.team2_id = NULL
+        WHERE md.event_id = ? AND md.matchday_number > 1
+    ")->execute([$event_id]);
 }
 
 /**
- * Fallback: Halbfinal-Ergebnisse erneut in Finale / Platz-3 übernehmen.
+ * Fallback: alle abgeschlossenen K.O.-Runden erneut in Folge-Spiele übernehmen.
  */
-function repair_ko_bracket_4(PDO $db, int $event_id): array
+function repair_ko_bracket(PDO $db, int $event_id): array
 {
-    $event_stmt = $db->prepare("SELECT duration_type FROM events WHERE id = ?");
+    $event_stmt = $db->prepare('SELECT duration_type FROM events WHERE id = ?');
     $event_stmt->execute([$event_id]);
     $event = $event_stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$event || $event['duration_type'] !== 'kurz') {
-        return ['success' => false, 'message' => 'Nur im Elimination-Modus verfügbar.'];
+        return ['success' => false, 'message' => 'Nur im Elimination-Modus (K.O.) verfügbar.'];
     }
 
-    $teams_stmt = $db->prepare('SELECT COUNT(*) FROM teams WHERE event_id = ?');
-    $teams_stmt->execute([$event_id]);
-    if ((int) $teams_stmt->fetchColumn() !== 4) {
-        return ['success' => false, 'message' => 'Reparatur nur für 4-Team-Elimination.'];
+    $team_count = count_event_teams($db, $event_id);
+    if (!ko_supported_team_count($team_count)) {
+        return ['success' => false, 'message' => 'Reparatur nur für 4, 8 oder 16 Teams.'];
     }
 
-    $md2_exists = $db->prepare('SELECT COUNT(*) FROM matchdays WHERE event_id = ? AND matchday_number = 2');
-    $md2_exists->execute([$event_id]);
-    if ((int) $md2_exists->fetchColumn() === 0) {
-        $gen = generate_ko_bracket_4($db, $event_id, false);
+    $md_exists = $db->prepare('SELECT COUNT(*) FROM matchdays WHERE event_id = ?');
+    $md_exists->execute([$event_id]);
+    if ((int) $md_exists->fetchColumn() === 0) {
+        $gen = generate_ko_bracket($db, $event_id, false);
         if (!$gen['success']) {
             return $gen;
         }
     }
 
-    $sf_stmt = $db->prepare("
+    $total_rounds = ko_total_rounds($team_count);
+    clear_ko_bracket_progress($db, $event_id);
+
+    $finished_stmt = $db->prepare("
         SELECT m.id, m.score1, m.score2
         FROM matches m
         JOIN matchdays md ON m.matchday_id = md.id
-        WHERE md.event_id = ? AND md.matchday_number = 1 AND m.status = 'finished'
-        ORDER BY m.id ASC
+        WHERE md.event_id = ?
+          AND md.matchday_number < ?
+          AND m.status = 'finished'
+          AND m.team1_id IS NOT NULL
+          AND m.team2_id IS NOT NULL
+        ORDER BY md.matchday_number ASC, m.id ASC
     ");
-    $sf_stmt->execute([$event_id]);
-    $semifinals = $sf_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $finished_stmt->execute([$event_id, $total_rounds]);
+    $finished = $finished_stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    foreach ($semifinals as $sf) {
-        advance_ko_after_result($db, (int) $sf['id'], (int) $sf['score1'], (int) $sf['score2']);
+    foreach ($finished as $match) {
+        advance_ko_after_result(
+            $db,
+            (int) $match['id'],
+            (int) $match['score1'],
+            (int) $match['score2']
+        );
     }
 
     return [
         'success' => true,
-        'message' => 'K.O.-Bracket aus abgeschlossenen Halbfinalen synchronisiert.',
+        'message' => 'K.O.-Bracket aus abgeschlossenen Spielen synchronisiert.',
     ];
+}
+
+/** @deprecated Alias – nutze repair_ko_bracket() */
+function repair_ko_bracket_4(PDO $db, int $event_id): array
+{
+    return repair_ko_bracket($db, $event_id);
 }
 
 function display_team_label(?string $name): string
