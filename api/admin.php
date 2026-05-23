@@ -111,7 +111,6 @@ if ($action === 'generate_matchplan') {
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'message' => 'Datenbank-Fehler: ' . $e->getMessage()]);
     }
-    }
     exit;
 }
 
