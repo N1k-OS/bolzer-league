@@ -10,31 +10,41 @@ try {
     $database = new Database();
     $db = $database->getConnection();
 
-    // 1. Ein Event erstellen
-    $db->exec("INSERT INTO events (name, event_date, duration_type, status) VALUES ('Eröffnungsturnier', '2026-05-20', 'standard', 'active')");
-    $event_id = $db->lastInsertId();
+    // Transaktion starten für schnelleres Einfügen
+    $db->beginTransaction();
 
-    // 2. Vier Teams erstellen
-    $teams = [
-        ['Team Alpha', '🛡️'],
-        ['Team Bravo', '🦁'],
-        ['Team Charlie', '🦅'],
-        ['Team Delta', '🐍']
-    ];
-    $team_ids = [];
-    foreach ($teams as $team) {
-        $stmt = $db->prepare("INSERT INTO teams (event_id, name, icon, budget) VALUES (?, ?, ?, 150)");
-        $stmt->execute([$event_id, $team[0], $team[1]]);
-        $team_ids[] = $db->lastInsertId();
+    // Einheitliches Passwort für alle Test-User
+    $default_password = password_hash('test1234', PASSWORD_DEFAULT);
+    $categories = ['a', 'b', 'c']; // Für etwas Abwechslung bei den Testdaten
+
+    for ($i = 1; $i <= 16; $i++) {
+        $alias = "TestSpieler_" . $i;
+        $icon = "👤"; 
+        
+        // Zufällige Kategorie aus dem Array ziehen
+        $random_cat = $categories[array_rand($categories)];
+
+        // Prüfen, ob der User zufällig schon existiert (falls du das Skript 2x ausführst)
+        $check = $db->prepare("SELECT id FROM users WHERE alias = :alias");
+        $check->execute([':alias' => $alias]);
+        
+        if ($check->rowCount() == 0) {
+            $stmt = $db->prepare("INSERT INTO users (alias, password_hash, icon, base_category) VALUES (:alias, :hash, :icon, :cat)");
+            $stmt->execute([
+                ':alias' => $alias,
+                ':hash' => $default_password,
+                ':icon' => $icon,
+                ':cat' => $random_cat
+            ]);
+        }
     }
 
-    // 3. Deinen frisch registrierten User (ID = 1) in Team 1 (Alpha) stecken
-    // Ich gehe davon aus, dass dein erstellter Account die ID 1 hat.
-    $stmt = $db->prepare("INSERT INTO rosters (event_id, team_id, user_id, current_category, current_price) VALUES (?, ?, ?, 'c', 50)");
-    $stmt->execute([$event_id, $team_ids[0], 1]);
+    $db->commit();
+    echo "Erfolgreich! 16 Testspieler wurden angelegt (Login: TestSpieler_1 bis TestSpieler_16 | Passwort: test1234). Du kannst diese Datei jetzt wieder vom Server löschen.";
 
-    echo "Erfolgreich! Event, 4 Teams und du im Kader wurden angelegt. Du kannst diese Datei jetzt wieder vom Server löschen.";
 } catch (Exception $e) {
-    echo "Fehler: " . $e->getMessage();
+    // Bei einem Fehler wird alles zurückgerollt
+    $db->rollBack();
+    echo "Fehler beim Erstellen der User: " . $e->getMessage();
 }
 ?>
