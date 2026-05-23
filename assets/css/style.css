@@ -553,19 +553,6 @@ body {
     flex-grow: 1;
 }
 
-/* --- Connectors (Pyramide) --- */
-.bracket-round:not(:last-child) .bracket-match::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    right: -30px; /* same as bracket-round margin-right */
-    width: 30px;
-    height: 2px;
-    background-color: var(--border-color);
-    transform: translateY(-50%);
-    z-index: 1;
-}
-
 /* --- Das einzelne Match im Baum --- */
 .bracket-match {
     background-color: var(--card-bg);
@@ -953,16 +940,7 @@ input:checked + .toggle-slider {
 input:checked + .toggle-slider:before {
     transform: translateX(24px);
 }
-
-.placements-section {
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-}
-
-.placements-section h3 {
-    margin-bottom: 20px;
-}
+ 
 
 /* =========================================
    LOGIN / AUTH
