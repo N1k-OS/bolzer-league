@@ -10,6 +10,10 @@ function generate_league_schedule(PDO $db, int $event_id, string $mode): array
         return ['success' => false, 'message' => 'Ungültiger Liga-Modus.'];
     }
 
+    try {
+        $db->exec("ALTER TABLE teams ADD COLUMN group_name VARCHAR(50) NULL");
+    } catch (PDOException $e) {}
+
     $teams_stmt = $db->prepare('SELECT id FROM teams WHERE event_id = ?');
     $teams_stmt->execute([$event_id]);
     $teams = $teams_stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -21,48 +25,131 @@ function generate_league_schedule(PDO $db, int $event_id, string $mode): array
 
     $db->prepare('DELETE FROM matchdays WHERE event_id = ?')->execute([$event_id]);
 
-    if ($num_teams % 2 !== 0) {
-        $teams[] = 'GHOST';
-        $num_teams++;
-    }
+    if ($mode === 'lang') {
+        $db->prepare("UPDATE teams SET group_name = NULL WHERE event_id = ?")->execute([$event_id]);
+        
+        if ($num_teams % 2 !== 0) {
+            $teams[] = 'GHOST';
+            $num_teams++;
+        }
 
-    $total_rounds = $num_teams - 1;
-    $matches_per_round = (int) ($num_teams / 2);
-    $cycles = ($mode === 'lang') ? 2 : 1;
-    $current_matchday = 1;
+        $total_rounds = $num_teams - 1;
+        $matches_per_round = (int) ($num_teams / 2);
+        $cycles = 2; // Hin- und Rückrunde
+        $current_matchday = 1;
 
-    for ($cycle = 0; $cycle < $cycles; $cycle++) {
-        for ($round = 0; $round < $total_rounds; $round++) {
+        for ($cycle = 0; $cycle < $cycles; $cycle++) {
+            for ($round = 0; $round < $total_rounds; $round++) {
+                $md_stmt = $db->prepare('INSERT INTO matchdays (event_id, matchday_number) VALUES (?, ?)');
+                $md_stmt->execute([$event_id, $current_matchday]);
+                $matchday_id = $db->lastInsertId();
+
+                for ($match = 0; $match < $matches_per_round; $match++) {
+                    $home = ($round + $match) % ($num_teams - 1);
+                    $away = ($num_teams - 1 - $match + $round) % ($num_teams - 1);
+
+                    if ($match === 0) {
+                        $away = $num_teams - 1;
+                    }
+                    if ($cycle === 1) {
+                        $temp = $home;
+                        $home = $away;
+                        $away = $temp;
+                    }
+
+                    $home_team = $teams[$home];
+                    $away_team = $teams[$away];
+
+                    if ($home_team !== 'GHOST' && $away_team !== 'GHOST') {
+                        $db->prepare('INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)')
+                            ->execute([$matchday_id, $home_team, $away_team]);
+                    }
+                }
+                $current_matchday++;
+            }
+        }
+        return ['success' => true, 'message' => "Liga-Spielplan (Erweitert) angelegt."];
+    } else {
+        // Mode: standard (WM Format - Group Stage)
+        shuffle($teams);
+        
+        $num_groups = max(1, (int) floor($num_teams / 4));
+        if ($num_groups < 2 && $num_teams >= 4) {
+            $num_groups = 2;
+        }
+        
+        $groups = [];
+        $group_labels = range('A', 'Z');
+        for ($i = 0; $i < $num_groups; $i++) {
+            $groups[$group_labels[$i]] = [];
+        }
+        
+        $current_group_idx = 0;
+        $update_group_stmt = $db->prepare("UPDATE teams SET group_name = ? WHERE id = ?");
+        foreach ($teams as $team_id) {
+            $label = $group_labels[$current_group_idx];
+            $groups[$label][] = $team_id;
+            $update_group_stmt->execute(["Gruppe $label", $team_id]);
+            
+            $current_group_idx++;
+            if ($current_group_idx >= $num_groups) {
+                $current_group_idx = 0;
+            }
+        }
+        
+        $max_matchdays = 0;
+        $group_schedules = [];
+        
+        foreach ($groups as $label => $group_teams) {
+            $g_teams = $group_teams;
+            $g_num = count($g_teams);
+            if ($g_num % 2 !== 0) {
+                $g_teams[] = 'GHOST';
+                $g_num++;
+            }
+            
+            $rounds = $g_num - 1;
+            $matches_per_round = $g_num / 2;
+            $schedule = [];
+            for ($round = 0; $round < $rounds; $round++) {
+                $round_matches = [];
+                for ($match = 0; $match < $matches_per_round; $match++) {
+                    $home = ($round + $match) % ($g_num - 1);
+                    $away = ($g_num - 1 - $match + $round) % ($g_num - 1);
+                    if ($match === 0) {
+                        $away = $g_num - 1;
+                    }
+                    $home_team = $g_teams[$home];
+                    $away_team = $g_teams[$away];
+                    if ($home_team !== 'GHOST' && $away_team !== 'GHOST') {
+                        $round_matches[] = [$home_team, $away_team];
+                    }
+                }
+                $schedule[] = $round_matches;
+            }
+            $group_schedules[$label] = $schedule;
+            if (count($schedule) > $max_matchdays) {
+                $max_matchdays = count($schedule);
+            }
+        }
+        
+        for ($md = 0; $md < $max_matchdays; $md++) {
             $md_stmt = $db->prepare('INSERT INTO matchdays (event_id, matchday_number) VALUES (?, ?)');
-            $md_stmt->execute([$event_id, $current_matchday]);
+            $md_stmt->execute([$event_id, $md + 1]);
             $matchday_id = $db->lastInsertId();
-
-            for ($match = 0; $match < $matches_per_round; $match++) {
-                $home = ($round + $match) % ($num_teams - 1);
-                $away = ($num_teams - 1 - $match + $round) % ($num_teams - 1);
-
-                if ($match === 0) {
-                    $away = $num_teams - 1;
-                }
-                if ($cycle === 1) {
-                    $temp = $home;
-                    $home = $away;
-                    $away = $temp;
-                }
-
-                $home_team = $teams[$home];
-                $away_team = $teams[$away];
-
-                if ($home_team !== 'GHOST' && $away_team !== 'GHOST') {
-                    $db->prepare('INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)')
-                        ->execute([$matchday_id, $home_team, $away_team]);
+            
+            foreach ($group_schedules as $label => $schedule) {
+                if (isset($schedule[$md])) {
+                    foreach ($schedule[$md] as $m) {
+                        $db->prepare('INSERT INTO matches (matchday_id, team1_id, team2_id) VALUES (?, ?, ?)')
+                            ->execute([$matchday_id, $m[0], $m[1]]);
+                    }
                 }
             }
-            $current_matchday++;
         }
+        
+        return ['success' => true, 'message' => "WM-Spielplan (Gruppenphase) angelegt. Teams in $num_groups Gruppen aufgeteilt."];
     }
-
-    return ['success' => true, 'message' => "Liga-Spielplan ($mode) angelegt."];
 }
 
 /** K.O.-Elimination: 4, 8 oder 16 Teams (Zweierpotenzen). */
